@@ -1,0 +1,2173 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 検索エンジンに載せない（URL を知っている人だけが辿り着く状態にする） -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="description" content="擬一次消失シミュレーター / アレニウスプロットシミュレーター — Wood Chemistry Lab, UTokyo. 教育目的。">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📉</text></svg>">
+<style>
+  html{color-scheme:light}
+  body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>擬一次消失シミュレーター</title>
+<style>
+:root{
+  color-scheme: light;
+  --ground:#f3f3f1;
+  --surface:#fcfcfb;
+  --surface-2:#ececea;
+  --ink:#14161a;
+  --ink-2:#4c5157;
+  --ink-3:#868b90;
+  --rule:#dededa;
+  --baseline:#c2c3bd;
+  --ring:rgba(20,22,26,.12);
+  --focus:#2a78d6;
+  --danger:#d03b3b;
+  --danger-soft:rgba(208,59,59,.11);
+  --danger-soft-hover:rgba(208,59,59,.22);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --s9:#1b1d20;   /* ink / 黒 */
+  /* Latin/figures in Arial; Japanese from the first installed family that has it
+     (MS Gothic on Windows, Hiragino/Yu Gothic on macOS, Noto Sans JP elsewhere) */
+  --sans:Arial, Helvetica, "MS Gothic", "ＭＳ ゴシック", "Hiragino Sans",
+         "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, "Noto Sans JP", sans-serif;
+  --mono:"MS Gothic", "ＭＳ ゴシック", ui-monospace, SFMono-Regular, Menlo, Consolas,
+         "Courier New", monospace;
+  /* inside the plot: Arial for Latin/figures, a Mincho/serif face for Japanese */
+  --chart:Arial, Helvetica, "MS Mincho", "ＭＳ 明朝", "Hiragino Mincho ProN",
+          "Yu Mincho", YuMincho, "Noto Serif JP", serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0d0d0d;
+    --surface:#1a1a19;
+    --surface-2:#242423;
+    --ink:#ffffff;
+    --ink-2:#c3c2b7;
+    --ink-3:#8b8d8a;
+    --rule:#2e2e2c;
+    --baseline:#3b3b38;
+    --ring:rgba(255,255,255,.14);
+    --focus:#3987e5;
+    --danger:#e66767;
+    --danger-soft:rgba(230,103,103,.17);
+    --danger-soft-hover:rgba(230,103,103,.30);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+    --s9:#f2f2ef;   /* ink / 黒（ダークでは白として描画） */
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0d0d0d;
+  --surface:#1a1a19;
+  --surface-2:#242423;
+  --ink:#ffffff;
+  --ink-2:#c3c2b7;
+  --ink-3:#8b8d8a;
+  --rule:#2e2e2c;
+  --baseline:#3b3b38;
+  --ring:rgba(255,255,255,.14);
+  --focus:#3987e5;
+  --danger:#e66767;
+  --danger-soft:rgba(230,103,103,.17);
+  --danger-soft-hover:rgba(230,103,103,.30);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --s9:#f2f2ef;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+sub,sup{line-height:0}
+i{font-style:italic}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 56px}
+@media (max-width:520px){.wrap{padding:18px 16px 40px}}
+
+/* ---------- masthead ---------- */
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px 28px}
+.mast-main{flex:1 1 400px;min-width:0}
+.credit{
+  flex:0 0 auto;margin-left:auto;text-align:right;
+  font-family:var(--mono);font-size:11px;line-height:1.75;color:var(--ink-3);
+}
+.credit .lab{color:var(--ink-2);font-weight:500}
+.credit .edu{
+  display:inline-block;margin-top:5px;padding:1px 9px;border-radius:999px;
+  border:1px solid var(--rule);font-size:10px;letter-spacing:.02em;
+}
+@media (max-width:640px){
+  .credit{margin-left:0;text-align:left}
+}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);
+  margin:0 0 6px;
+}
+h1{
+  font-size:clamp(21px,3.4vw,29px);font-weight:600;letter-spacing:-.01em;
+  margin:0;text-wrap:balance;
+}
+.sub{color:var(--ink-2);margin:6px 0 0;max-width:62ch}
+.sub .en{color:var(--ink-3)}
+.eq{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
+  margin:14px 0 0;display:flex;flex-wrap:wrap;gap:6px 22px;
+}
+.eq span{white-space:nowrap}
+.eq + .eq{margin-top:6px}
+
+/* two-simulator summary in the masthead */
+.simlist{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.simitem{display:flex;gap:10px;align-items:flex-start}
+.simitem .n{
+  font-family:var(--mono);font-size:15px;color:var(--ink-2);line-height:1.5;flex:0 0 auto;
+}
+.simitem b{font-size:14px}
+.simitem .ename{
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.05em;
+  text-transform:uppercase;margin-left:9px;
+}
+.simitem p{margin:2px 0 0;font-size:13px;color:var(--ink-2);line-height:1.65}
+.simitem p.en{color:var(--ink-3);font-size:12px}
+
+/* per-tab introduction */
+.tabintro{margin-top:16px}
+.tabintro > p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.7}
+.tabintro > p.en{color:var(--ink-3);font-size:12px;margin-top:3px}
+.eqbox{
+  margin-top:12px;border:1px solid var(--rule);border-left:3px solid var(--baseline);
+  border-radius:0 8px 8px 0;background:var(--surface);padding:9px 14px 11px;
+  display:inline-block;max-width:100%;
+}
+.eqh{font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.eqh .en{
+  font-family:var(--mono);font-size:10px;font-weight:400;color:var(--ink-3);
+  letter-spacing:.05em;text-transform:uppercase;margin-left:8px;
+}
+.eqbox .eq{margin-top:8px}
+
+/* ---------- view tabs ---------- */
+.viewtabs{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 16px;
+  margin-top:20px;border-bottom:1px solid var(--rule);
+}
+.tabrow{display:flex;flex-wrap:wrap;gap:2px;min-width:0}
+.viewtabs .seg{flex-wrap:wrap}
+.themefield{margin-left:auto;padding-bottom:6px}
+@media (max-width:700px){.themefield{margin-left:0;padding-bottom:8px}}
+.viewtabs .tabrow button{
+  border:0;background:transparent;color:var(--ink-3);cursor:pointer;
+  font-family:var(--sans);font-size:13px;padding:8px 14px;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.viewtabs .tabrow button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+.viewtabs .tabrow button:not([aria-selected="true"]):hover{color:var(--ink-2);background:var(--surface-2)}
+
+/* ---------- Arrhenius view ---------- */
+.arr-head{margin-top:18px}
+.arr-head h2{font-size:15px;font-weight:600;margin:0}
+.arr-head h2 .en{font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--ink-3);letter-spacing:.06em;margin-left:9px;text-transform:uppercase}
+.arr-head .note{color:var(--ink-3);font-size:12px;margin:4px 0 0;max-width:70ch}
+.setbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:14px}
+.setchips{display:flex;flex-wrap:wrap;gap:8px}
+.setchip{
+  display:flex;align-items:center;gap:7px;border:1px solid var(--rule);
+  background:var(--surface);border-radius:8px;padding:4px 6px 4px 8px;
+}
+.setchip.active{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.setchip.picked{outline:2px solid var(--focus);outline-offset:1px}
+.setchip.dropzone{border-color:var(--focus);background:var(--surface-2)}
+.setchip.dragging{opacity:.45}
+.cgrip{
+  border:0;background:transparent;padding:1px 2px;border-radius:4px;cursor:grab;
+  color:var(--ink-3);display:flex;align-items:center;
+}
+.cgrip:active{cursor:grabbing}
+.cgrip svg{pointer-events:none;display:block}
+.setchip:hover .cgrip{color:var(--ink-2);background:var(--surface-2)}
+.setmovehint{
+  font-size:11.5px;color:var(--focus);display:flex;align-items:center;gap:8px;
+}
+.setchip .ck{display:flex;align-items:center;gap:5px;cursor:pointer}
+.setchip .ck input{width:13px;height:13px;margin:0;accent-color:var(--focus);cursor:pointer}
+.setchip .nm{
+  border:0;background:transparent;color:var(--ink);cursor:pointer;padding:0 2px;
+  font-family:var(--sans);font-size:12.5px;max-width:20ch;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.setchip.active .nm{font-weight:600}
+.setchip .x{
+  width:17px;height:17px;padding:0;border:0;border-radius:5px;cursor:pointer;
+  display:grid;place-items:center;background:var(--danger-soft);color:var(--danger);
+  font-family:var(--sans);font-size:10px;line-height:1;opacity:.8;
+}
+.setchip .x:hover{background:var(--danger-soft-hover);opacity:1}
+.seteditor{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:12px}
+.seteditor .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+input.setname{width:24ch;height:30px;font-size:13px}
+.swatches.sm .sw-btn{width:21px;height:21px}
+.arr-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;padding:0 4px}
+.arr-legend .li{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-2)}
+.arr-legend .r2{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+table.t-cmp td:first-child{text-align:left;font-family:var(--sans);font-size:12px}
+table.t-cmp .swcell{display:flex;align-items:center;gap:6px}
+.cmp-note{font-size:11px;color:var(--ink-3);margin:6px 0 0;max-width:34ch}
+.arr-tables{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:14px}
+table.arr{border-collapse:collapse;background:var(--surface)}
+table.arr th,table.arr td{border:1px solid var(--rule);padding:5px 9px}
+/* the input table is where the user actually types — outline it heavily */
+table.arr.t-input{outline:2.5px solid var(--ink);outline-offset:-1px}
+table.arr th{
+  background:var(--surface-2);color:var(--ink-2);font-weight:600;font-size:11.5px;
+  text-align:center;white-space:nowrap;
+}
+table.arr td{
+  font-family:var(--mono);font-size:12.5px;text-align:right;
+  font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;
+}
+table.arr td.blank{color:var(--ink-3)}
+table.arr input{
+  width:9ch;height:26px;padding:2px 6px;text-align:right;
+  font-family:var(--mono);font-size:12.5px;border-radius:5px;
+}
+.unitpick{display:flex;gap:4px;justify-content:center;margin-top:4px}
+.unitpick select{width:auto;height:24px;padding:1px 4px;font-family:var(--mono);font-size:10.5px}
+.arr-rowbtns{display:flex;flex-direction:column;gap:6px}
+.arr-lower{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;margin-top:20px}
+.arr-lower > *{min-width:0;max-width:100%}
+#arrResWrap{overflow-x:auto}
+.seg.plotmode{margin-bottom:6px}
+.modenote{
+  margin:0 0 8px;font-size:11px;line-height:1.6;color:var(--ink-3);
+  width:min(380px,100%);
+}
+.modenote .en{display:block}
+.arr-plot{
+  flex:0 0 auto;width:min(380px,100%);background:var(--surface);
+  border:1px solid var(--rule);border-radius:10px;padding:8px;
+}
+.arr-plot svg{display:block;width:100%;height:auto}
+table.t-res td:first-child{text-align:left;font-family:var(--sans);color:var(--ink-2);font-size:12px}
+table.t-res td:last-child{font-weight:500}
+.arr-steps{flex:1 1 300px;min-width:0}
+.steps-h{font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.steps-h .en{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--ink-3);margin-left:8px;letter-spacing:.05em;text-transform:uppercase}
+.arr-steps pre{
+  margin:0;background:var(--surface);border:1px solid var(--rule);border-radius:8px;
+  padding:10px 12px;font-family:var(--mono);font-size:11px;line-height:1.75;
+  color:var(--ink-2);overflow-x:auto;white-space:pre;
+}
+.arr-steps pre b{color:var(--ink);font-weight:600}
+
+/* ---------- toolbar ---------- */
+.toolbar{
+  margin-top:22px;background:var(--surface);border:1px solid var(--rule);
+  border-radius:10px;padding:12px 14px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;
+}
+.field{display:flex;align-items:center;gap:8px}
+.field > .lab{font-size:11px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap}
+.stepper{display:flex;align-items:center;border:1px solid var(--rule);border-radius:7px;overflow:hidden;background:var(--ground)}
+.stepper button{
+  width:28px;height:28px;border:0;background:transparent;color:var(--ink-2);
+  font-size:15px;line-height:1;cursor:pointer;font-family:var(--mono);
+}
+.stepper button:hover{background:var(--surface-2);color:var(--ink)}
+.stepper .num{
+  min-width:26px;text-align:center;font-family:var(--mono);font-weight:500;
+  font-variant-numeric:tabular-nums;font-size:13px;
+}
+.seg{display:flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;background:var(--ground)}
+.seg button{
+  border:0;background:transparent;color:var(--ink-2);cursor:pointer;
+  font-family:var(--sans);font-size:12.5px;padding:5px 11px;height:30px;
+}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);font-weight:500}
+.seg button:not([aria-pressed="true"]):hover{background:var(--surface-2);color:var(--ink)}
+.spacer{flex:1 1 auto}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+@media (max-width:760px){.tools{margin-left:0}}
+.btn{
+  border:1px solid var(--rule);background:var(--ground);color:var(--ink-2);
+  border-radius:7px;padding:6px 12px;height:30px;font-family:var(--sans);
+  font-size:12.5px;cursor:pointer;white-space:nowrap;
+}
+.btn:hover{background:var(--surface-2);color:var(--ink)}
+.btn.solid{background:var(--ink);border-color:var(--ink);color:var(--surface);font-weight:500}
+.btn.solid:hover{opacity:.86;background:var(--ink);color:var(--surface)}
+.btn.quiet{border-color:transparent;background:transparent}
+.btn.quiet:hover{background:var(--surface-2)}
+.btn.warn{color:var(--danger)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+/* ---------- grid of panels ---------- */
+.grid{
+  margin-top:16px;display:grid;gap:14px;
+  grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));
+}
+@media (max-width:620px){.grid{grid-template-columns:1fr}}
+.panel{
+  background:var(--surface);border:1px solid var(--rule);
+  border-radius:10px;display:flex;flex-direction:column;overflow:hidden;
+  min-width:0;
+}
+.panel.empty{border-style:dashed;background:transparent}
+.p-head{display:flex;align-items:flex-start;gap:6px;padding:9px 10px 4px}
+.p-title{
+  flex:1 1 auto;min-width:0;border:0;background:transparent;color:var(--ink);
+  font-family:var(--sans);font-size:13px;font-weight:600;padding:1px 3px;
+  border-radius:4px;text-overflow:ellipsis;
+}
+.p-title:hover{background:var(--surface-2)}
+.p-sub{
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
+  padding:0 13px 2px;display:flex;align-items:center;gap:6px;
+}
+.p-sub .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+select.basis{
+  width:auto;height:23px;padding:1px 4px;font-family:var(--mono);font-size:10.5px;
+  color:var(--ink-2);border-color:var(--rule);
+}
+select.basis:hover{color:var(--ink)}
+.p-memo{
+  /* 20 characters wide by default, growing to fit longer notes where supported */
+  margin:0 13px 4px;align-self:flex-start;
+  width:auto;min-width:20ch;max-width:calc(100% - 26px);
+  field-sizing:content;
+  border:1px solid transparent;border-radius:5px;background:transparent;
+  color:var(--ink-2);font-family:var(--sans);font-size:10.5px;line-height:1.5;
+  padding:2px 5px;height:auto;
+}
+.p-memo::placeholder{color:var(--ink-3);opacity:.75}
+.p-memo:hover{border-color:var(--rule)}
+.p-memo:focus{border-color:var(--focus);background:var(--ground);color:var(--ink)}
+.dashbtn{
+  border:0;background:transparent;padding:2px 3px;border-radius:4px;cursor:pointer;
+  display:flex;align-items:center;flex:0 0 auto;
+}
+.dashbtn:hover{background:var(--surface-2)}
+svg.sw{display:block;flex:0 0 auto}
+.p-acts{display:flex;gap:2px;flex:0 0 auto}
+.icon{
+  width:24px;height:24px;border:0;border-radius:5px;background:transparent;
+  color:var(--ink-3);cursor:pointer;font-size:14px;line-height:1;font-family:var(--mono);
+  display:grid;place-items:center;
+}
+.icon:hover{background:var(--surface-2);color:var(--ink)}
+.icon.warn:hover{color:var(--danger)}
+.grip{cursor:grab;color:var(--ink-2)}
+.grip:active{cursor:grabbing}
+.panel:hover .grip{background:var(--surface-2)}
+.grip svg{pointer-events:none;display:block}
+.panel.picked{outline:2px solid var(--focus);outline-offset:-2px}
+.panel.picked .grip{background:var(--focus);color:#fff}
+.panel.dropzone{border-color:var(--focus);background:var(--surface-2)}
+.panel.dragging{opacity:.45}
+.movehint{
+  margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  border:1px solid var(--focus);border-radius:9px;padding:8px 12px;
+  background:var(--surface);font-size:12.5px;color:var(--ink-2);
+}
+.movehint .en{color:var(--ink-3)}
+/* the SVG's viewBox is sized so the axes box is exactly square; matching the
+   container's aspect ratio to it keeps the plotted square square on screen */
+.plot{position:relative;flex:0 0 auto;aspect-ratio:266/253;max-width:100%}
+.plot svg{display:block;width:100%;height:100%}
+.tip{
+  position:absolute;pointer-events:none;opacity:0;transition:opacity .09s;
+  background:var(--surface);border:1px solid var(--ring);border-radius:7px;
+  padding:6px 8px;font-family:var(--mono);font-size:10.5px;line-height:1.5;
+  box-shadow:0 4px 14px rgba(0,0,0,.13);z-index:4;white-space:nowrap;color:var(--ink);
+}
+.tip .row{display:flex;align-items:center;gap:5px}
+.tip .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.tip .t0{color:var(--ink-3);border-bottom:1px solid var(--rule);padding-bottom:3px;margin-bottom:3px}
+.p-foot{margin-top:auto;padding:6px 11px 10px;border-top:1px solid var(--rule)}
+/* one legend table for every panel: line · label · k_obs · t50% · t95% · t99% */
+.legend{max-height:136px;overflow:auto}
+.lgrid{
+  display:grid;align-items:center;gap:3px 10px;min-width:max-content;
+  grid-template-columns:auto minmax(46px,1fr) auto auto auto auto auto;
+}
+.lh,.li{display:contents}
+.lgrid .hd{
+  font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--ink-3);
+  text-align:right;padding-bottom:1px;
+}
+.lgrid .sw{width:20px;height:6px}
+.lgrid .nm{
+  font-size:11.5px;color:var(--ink-2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.lgrid .refmark{
+  margin-left:5px;padding:0 4px;border:1px solid var(--rule);border-radius:3px;
+  font-size:8.5px;color:var(--ink-3);vertical-align:1px;
+}
+.lgrid .kv{font-family:var(--mono);font-size:10px;color:var(--ink-3);white-space:nowrap;text-align:right}
+.lgrid .tv{
+  font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--ink);
+  white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;
+}
+.lgrid .tv small{font-size:9px;font-weight:400;color:var(--ink-2);margin-left:1px}
+.lgrid .x{
+  width:19px;height:19px;padding:0;border:0;border-radius:6px;cursor:pointer;
+  display:grid;place-items:center;justify-self:end;
+  background:var(--danger-soft);color:var(--danger);opacity:.8;
+  font-family:var(--sans);font-size:11px;line-height:1;
+}
+.lgrid .x:hover{background:var(--danger-soft-hover);opacity:1}
+.addbox{
+  flex:1 1 auto;display:grid;place-items:center;padding:12px;min-height:210px;
+}
+.addbtn{
+  border:1px dashed var(--baseline);background:transparent;color:var(--ink-3);
+  border-radius:9px;padding:12px 16px;cursor:pointer;font-family:var(--sans);
+  font-size:12.5px;text-align:center;line-height:1.5;
+}
+.addbtn:hover{border-color:var(--ink-3);color:var(--ink);background:var(--surface-2)}
+.addbtn .plus{display:block;font-family:var(--mono);font-size:19px;margin-bottom:2px}
+.addbtn .en{display:block;font-size:10.5px;color:var(--ink-3)}
+
+/* ---------- drawer ---------- */
+.drawer{
+  margin-top:14px;background:var(--surface);border:1px solid var(--rule);
+  border-radius:10px;padding:14px;
+}
+.drawer h2{font-size:13px;font-weight:600;margin:0 0 2px}
+.drawer h2 .en{font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--ink-3);letter-spacing:.06em;margin-left:8px;text-transform:uppercase}
+.drawer p.note{color:var(--ink-3);font-size:12px;margin:0 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  display:flex;align-items:center;gap:8px;border:1px solid var(--rule);
+  background:var(--ground);border-radius:8px;padding:6px 8px 6px 10px;
+}
+.chip .nm{font-size:12.5px;font-weight:500}
+.chip .kv{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.chip .x{border:0;background:transparent;color:var(--ink-3);cursor:pointer;font-family:var(--mono);padding:0 2px}
+.chip .x:hover{color:var(--danger)}
+.io textarea{
+  width:100%;min-height:110px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:11px;
+  padding:9px;resize:vertical;line-height:1.5;
+}
+.io .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;align-items:center}
+.filebtn{display:inline-flex;align-items:center;line-height:1;cursor:pointer}
+.filebtn input{display:none}
+.io .msg{font-size:12px;color:var(--ink-3)}
+
+/* ---------- modal ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,11,12,.45);backdrop-filter:blur(2px);
+  display:grid;place-items:center;padding:18px;z-index:50;
+}
+.overlay[hidden]{display:none}
+.modal{
+  width:min(480px,100%);max-height:88vh;overflow-y:auto;background:var(--surface);
+  border:1px solid var(--ring);border-radius:12px;padding:18px;
+  box-shadow:0 18px 50px rgba(0,0,0,.3);
+}
+.modal h3{font-size:15px;font-weight:600;margin:0}
+.modal .mh{display:flex;align-items:flex-start;gap:10px;margin-bottom:2px}
+.modal .mh .en{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
+.tabs{display:flex;gap:2px;margin:14px 0 14px;border-bottom:1px solid var(--rule)}
+.tabs button{
+  border:0;background:transparent;color:var(--ink-3);cursor:pointer;padding:7px 11px;
+  font-family:var(--sans);font-size:12.5px;border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:500}
+.frm{display:flex;flex-direction:column;gap:12px}
+.frm label{display:block}
+.frm .lb{font-size:11px;font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:4px}
+input[type="text"],input[type="number"],select{
+  width:100%;border:1px solid var(--rule);border-radius:7px;background:var(--ground);
+  color:var(--ink);font-family:var(--sans);font-size:13.5px;padding:7px 9px;height:34px;
+}
+input[type="number"]{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.krow{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px;align-items:end}
+@media (max-width:430px){.krow{grid-template-columns:1fr 1fr}.krow label:first-child{grid-column:1/-1}}
+.swatches{display:flex;flex-wrap:wrap;gap:7px}
+.sw-btn{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.sw-btn[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--surface) inset}
+.preview{
+  background:var(--ground);border:1px solid var(--rule);border-radius:8px;padding:10px 12px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+}
+.preview .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--ink-3)}
+.preview .v{font-family:var(--mono);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+.preview .v small{font-size:10.5px;font-weight:400;color:var(--ink-2);margin-left:2px}
+.preview .full{grid-column:1/-1;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);border-top:1px solid var(--rule);padding-top:7px}
+.mact{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;align-items:center}
+.libgrid{display:flex;flex-direction:column;gap:7px;max-height:300px;overflow-y:auto}
+.librow{
+  display:flex;align-items:center;gap:10px;border:1px solid var(--rule);
+  border-radius:8px;padding:8px 10px;background:var(--ground);
+}
+.librow .nm{flex:1 1 auto;min-width:0;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.librow .kv{font-family:var(--mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
+.empty-note{color:var(--ink-3);font-size:12.5px;padding:14px 2px}
+footer.foot{margin-top:26px;color:var(--ink-3);font-size:11.5px;line-height:1.7}
+footer.foot code{font-family:var(--mono);color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+   <div class="mast-main">
+    <p class="eyebrow">Simulator for pseudo-first-order kinetics</p>
+    <h1>擬一次消失シミュレーター</h1>
+    <div class="simlist">
+      <div class="simitem">
+        <span class="n">①</span>
+        <div>
+          <b>消失曲線シミュレータ</b><span class="ename">Decay curve simulator</span>
+          <p>入力された <i>k</i><sub>obs</sub> から消失曲線を描画し、<i>n</i>&nbsp;%消失時間を求める。</p>
+          <p class="en">Draws the decay curve from the entered <i>k</i><sub>obs</sub> and finds the time required for <i>n</i>&nbsp;% loss.</p>
+        </div>
+      </div>
+      <div class="simitem">
+        <span class="n">②</span>
+        <div>
+          <b>アレニウスプロットシミュレータ</b><span class="ename">Arrhenius plot simulator</span>
+          <p>入力された (温度, <i>k</i><sub>obs</sub>) の組からアレニウスプロットを作成し、頻度因子 <i>A</i> とアレニウスの活性化エネルギー <i>E</i><sub>a</sub> を求める。</p>
+          <p class="en">Builds an Arrhenius plot from the entered (temperature, <i>k</i><sub>obs</sub>) pairs and finds the pre-exponential factor <i>A</i> and the Arrhenius activation energy <i>E</i><sub>a</sub>.</p>
+        </div>
+      </div>
+    </div>
+   </div>
+
+   <div class="credit">
+    <div class="lab">Wood Chemistry Lab, UTokyo</div>
+    <div>Co-created by Claude and toschem</div>
+    <!-- 更新日：公開するたびにここを書き換える / bump on every republish -->
+    <div>Last updated: <time datetime="2026-09-10">2026-09-10</time></div>
+    <div class="edu">教育目的 · For educational use only</div>
+   </div>
+  </header>
+
+  <div class="viewtabs">
+    <div class="tabrow" role="tablist">
+      <button type="button" id="tabDecay" role="tab" aria-selected="true">消失曲線 Decay curves</button>
+      <button type="button" id="tabArr" role="tab" aria-selected="false">アレニウスプロット Arrhenius plot</button>
+    </div>
+    <div class="field themefield">
+      <span class="lab">配色 Theme</span>
+      <div class="seg" role="group" aria-label="配色">
+        <button type="button" id="thAuto" aria-pressed="true">自動 Auto</button>
+        <button type="button" id="thLight" aria-pressed="false">ライト Light</button>
+        <button type="button" id="thDark" aria-pressed="false">ダーク Dark</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewDecay">
+  <div class="tabintro">
+    <p><i>k</i><sub>obs</sub> を入力すると、対応する消失曲線が描画され、50&nbsp;%／95&nbsp;%／99&nbsp;%消失にかかる時間（<i>t</i><sub>50%</sub> / <i>t</i><sub>95%</sub> / <i>t</i><sub>99%</sub>）が算出される。</p>
+    <p class="en">Enter <i>k</i><sub>obs</sub> to draw the corresponding decay curve and obtain the times required for 50&nbsp;%, 95&nbsp;% and 99&nbsp;% loss (<i>t</i><sub>50%</sub> / <i>t</i><sub>95%</sub> / <i>t</i><sub>99%</sub>).</p>
+    <div class="eqbox">
+      <div class="eqh">基本計算式<span class="en">Basic equations</span></div>
+      <p class="eq"><span>[C]/[C]<sub>0</sub> = e<sup>−<i>k</i><sub>obs</sub>·<i>t</i></sup></span></p>
+      <p class="eq">
+        <span><i>t</i><sub>50%</sub> = − ln(50/100) / <i>k</i><sub>obs</sub></span>
+        <span><i>t</i><sub>95%</sub> = − ln(5/100) / <i>k</i><sub>obs</sub></span>
+        <span><i>t</i><sub>99%</sub> = − ln(1/100) / <i>k</i><sub>obs</sub></span>
+      </p>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="field">
+      <span class="lab">列 Cols</span>
+      <div class="stepper">
+        <button type="button" id="colMinus" aria-label="列を減らす">−</button>
+        <span class="num" id="colNum">2</span>
+        <button type="button" id="colPlus" aria-label="列を増やす">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lab">縦軸 Y</span>
+      <div class="seg" role="group" aria-label="縦軸スケール">
+        <button type="button" id="yLin" aria-pressed="true">線形 Linear</button>
+        <button type="button" id="yLog" aria-pressed="false">片対数 Semi-log</button>
+      </div>
+    </div>
+    <button type="button" class="btn" id="addPanel">＋ 枠を追加 Add panel</button>
+    <div class="tools">
+      <button type="button" class="btn" id="libBtn">曲線の保存 Save Curves</button>
+      <button type="button" class="btn" id="ioBtn">JSONとして出力 Save as JSON file</button>
+      <button type="button" class="btn quiet warn" id="clearAll">全消去 Clear</button>
+    </div>
+  </div>
+
+  <div class="movehint" id="moveHint" hidden>
+    <span>並び替え中 — 入れ替えたい枠のハンドルをクリックしてください。<span class="en">Click another panel's handle to swap.</span></span>
+    <span class="spacer"></span>
+    <button type="button" class="btn quiet" id="moveCancel">取消 Cancel</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <section class="drawer" id="libDrawer" hidden>
+    <h2>曲線ライブラリ<span class="en">Saved curves</span></h2>
+    <p class="note">保存した <i>k</i><sub>obs</sub> は、各枠の「＋」ダイアログの〈ライブラリ〉タブからいつでも呼び出せます。</p>
+    <div class="chips" id="libChips"></div>
+  </section>
+
+  <section class="drawer io" id="ioDrawer" hidden>
+    <h2>JSON 書出し／読込<span class="en">Export / import</span></h2>
+    <p class="note">レイアウトと全曲線を JSON ファイルとして保存できます。別の PC やブラウザでは、その中身を下の欄に貼り付けて〈読み込む〉を押すと復元できます。</p>
+    <textarea id="ioText" spellcheck="false" aria-label="JSON データ"></textarea>
+    <div class="row">
+      <button type="button" class="btn solid" id="ioSave" hidden>ファイルに保存 Save .json</button>
+      <label class="btn filebtn" id="ioOpenWrap" hidden>ファイルを開く Open .json
+        <input type="file" id="ioFile" accept=".json,application/json">
+      </label>
+      <button type="button" class="btn" id="ioCopy">コピー Copy</button>
+      <button type="button" class="btn" id="ioLoad">貼り付けから読込 Import</button>
+      <span class="msg" id="ioMsg"></span>
+    </div>
+  </section>
+  </div><!-- /viewDecay -->
+
+  <div id="viewArr" hidden>
+    <div class="tabintro">
+      <p>左表に温度と <i>k</i><sub>obs</sub> の組を入力すると、中央・右の表、アレニウスプロット（図）、回帰結果がすべて自動で更新される。<br>
+      系（データセット）は名前を付けて保存でき、チェックを入れた系はプロット上に重ねて表示される。</p>
+      <p class="en">Enter (temperature, <i>k</i><sub>obs</sub>) pairs in the left-hand table; the middle and right tables, the Arrhenius plot and the regression results all update automatically.<br>
+      Series (datasets) can be named and saved, and every checked series is overlaid on the plot.</p>
+    </div>
+
+    <div class="setbar">
+      <div class="setchips" id="arrSets"></div>
+      <button type="button" class="btn" id="arrAddSet">＋ 系を追加 Add series</button>
+      <span class="setmovehint" id="setMoveHint" hidden>
+        並び替え中 — 移動先の系のハンドルをクリック
+        <button type="button" class="btn quiet" id="setMoveCancel">取消</button>
+      </span>
+    </div>
+
+    <div class="seteditor">
+      <span class="lab">編集中 Editing</span>
+      <input id="arrName" class="setname" aria-label="系の名前" placeholder="系の名前">
+      <span class="lab">色 Color</span>
+      <div class="swatches sm" id="arrSw"></div>
+    </div>
+
+    <div class="arr-tables">
+      <table class="arr t-input">
+        <thead><tr>
+          <th>温度 <i>T</i> (°C)</th>
+          <th><i>k</i><sub>obs</sub>
+            <span class="unitpick">
+              <select id="arrExp" aria-label="補助単位"></select>
+              <select id="arrUnit" aria-label="単位">
+                <option value="s">s⁻¹</option>
+                <option value="min">min⁻¹</option>
+                <option value="h">h⁻¹</option>
+              </select>
+            </span>
+          </th>
+        </tr></thead>
+        <tbody id="arrIn"></tbody>
+      </table>
+
+      <table class="arr">
+        <thead><tr><th>絶対温度 <i>T</i> (K)</th><th><i>k</i> (<span id="arrUnitA">min⁻¹</span>)</th></tr></thead>
+        <tbody id="arrMid"></tbody>
+      </table>
+
+      <table class="arr">
+        <thead><tr><th>1/<i>T</i> (K⁻¹)</th><th>ln <i>k</i></th></tr></thead>
+        <tbody id="arrRight"></tbody>
+      </table>
+
+      <div class="arr-rowbtns">
+        <button type="button" class="btn" id="arrAddRow">＋ 行を追加 Add row</button>
+        <button type="button" class="btn warn" id="arrDelRow">− 行を削除 Remove row</button>
+      </div>
+    </div>
+
+    <div class="arr-lower">
+      <div>
+        <div class="seg plotmode" role="group" aria-label="プロットの表示範囲">
+          <button type="button" id="pmData" aria-pressed="true">実測範囲 Data range</button>
+          <button type="button" id="pmFull" aria-pressed="false">切片表示 Intercepts</button>
+        </div>
+        <p class="modenote" id="arrModeNote"></p>
+        <div class="arr-plot" id="arrPlot"></div>
+        <div class="arr-legend" id="arrLegend"></div>
+      </div>
+      <div id="arrResWrap"></div>
+      <div class="arr-steps">
+        <div class="steps-h">計算過程（検算用）<span class="en" id="arrStepsWho"></span></div>
+        <pre id="arrSteps"></pre>
+      </div>
+    </div>
+  </div><!-- /viewArr -->
+
+  <footer class="foot">
+    枠は左上のハンドルをドラッグすると入れ替えられます。ドラッグできない環境では、ハンドルをクリック→移動先のハンドルをクリックでも入れ替わります。列数を変えると枠は自動で折り返します。<br>
+    各枠の <code>×</code> は1回目で曲線を消去し、空になった枠でもう一度押すとその枠自体を削除します。<br>
+    初期表示は文献値にもとづく表示例です（出典は各枠のタイトルに併記、<code>全消去</code> で白紙になります）。<i>t</i><sub>95%</sub>・<i>t</i><sub>99%</sub> は残存率 [C]/[C]<sub>0</sub> がそれぞれ 5&nbsp;%・1&nbsp;% に達する時刻（＝95&nbsp;%・99&nbsp;%が消失する時刻）、曲線は <i>t</i><sub>99%</sub> まで描画。データはこのブラウザに自動保存されます。<br>
+    <span class="en">Example data on first load. Curves are drawn to 99&nbsp;% loss; state is saved in this browser.</span><br>
+    アレニウスプロットのタブでは、最小二乗法で ln&nbsp;<i>k</i> 対 1/<i>T</i> を回帰し、傾き −<i>E</i><sub>a</sub>/<i>R</i> と切片 ln&nbsp;<i>A</i> から <i>E</i><sub>a</sub> と <i>A</i> を求めます（<i>R</i> = 8.314462618 J mol⁻¹ K⁻¹、<i>T</i>(K) = <i>T</i>(°C) + 273.15）。<i>A</i> の単位は入力した <i>k</i><sub>obs</sub> と同じです。<br>
+    本シミュレーターは<strong>教育・学習を目的</strong>として作成したものです。理想的な擬一次条件（<i>k</i><sub>obs</sub> 一定・単一経路）を仮定した計算であり、実際の反応系への適用にあたっては実測データによる検証を行ってください。<br>
+    <span class="en">This simulator is intended for teaching and self-study. It assumes ideal pseudo-first-order behaviour (a single pathway with constant <i>k</i><sub>obs</sub>); validate against measured data before applying it to a real system.</span>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="mh">
+      <h3 id="mTitle">消失曲線を追加</h3>
+      <span class="en">Add curve</span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" id="tabNew" role="tab" aria-selected="true">新規入力 New</button>
+      <button type="button" id="tabLib" role="tab" aria-selected="false">ライブラリ Library</button>
+    </div>
+
+    <div id="paneNew">
+      <div class="frm">
+        <label>
+          <span class="lb">曲線名 Label</span>
+          <input type="text" id="fName" placeholder="例: 化合物A pH 7.4">
+        </label>
+        <div class="krow">
+          <label>
+            <span class="lb"><i>k</i><sub>obs</sub> 数値 Value</span>
+            <input type="number" id="fMant" step="any" value="1">
+          </label>
+          <label>
+            <span class="lb">補助単位</span>
+            <select id="fExp"></select>
+          </label>
+          <label>
+            <span class="lb">単位 Unit</span>
+            <select id="fUnit">
+              <option value="s">s⁻¹</option>
+              <option value="min">min⁻¹</option>
+              <option value="h">h⁻¹</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <span class="lb">色 Color</span>
+          <div class="swatches" id="fSw"></div>
+        </div>
+        <label>
+          <span class="lb">線種 Line style</span>
+          <select id="fDash">
+            <option value="solid">実線 Solid</option>
+            <option value="dash">破線 Dashed</option>
+            <option value="dot">点線 Dotted</option>
+            <option value="dashdot">一点鎖線 Dash-dot</option>
+            <option value="dashdotdot">二点鎖線 Dash-dot-dot</option>
+          </select>
+        </label>
+        <div class="preview" id="fPrev"></div>
+      </div>
+      <div class="mact">
+        <button type="button" class="btn solid" id="mOk">この枠に表示</button>
+        <button type="button" class="btn" id="mSave">ライブラリに保存</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn quiet" id="mCancel">閉じる</button>
+      </div>
+    </div>
+
+    <div id="paneLib" hidden>
+      <div class="libgrid" id="libList"></div>
+      <div class="mact">
+        <span class="spacer"></span>
+        <button type="button" class="btn quiet" id="mCancel2">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ constants ============================ */
+var SLOTS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8","--s9"];
+function slotVar(i){ return SLOTS[(i || 0) % SLOTS.length]; }
+var UNIT_LABEL = {s:"s⁻¹", min:"min⁻¹", h:"h⁻¹"};
+var UNIT_TO_SEC = {s:1, min:1/60, h:1/3600};   /* k[unit^-1] -> k[s^-1] */
+var SUP = {"-":"⁻","0":"⁰","1":"¹","2":"²","3":"³",
+           "4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹"};
+var STORE = "pfo-decay-sim-v8";
+/* line styles: solid / dotted / dash-dot (round caps turn a 0.1 dash into a dot) */
+var DASHES = ["solid", "dash", "dot", "dashdot", "dashdotdot"];
+var DASH_PLOT = {solid:"", dash:"8 4", dot:"0.1 4", dashdot:"10 4 0.1 4", dashdotdot:"10 4 0.1 4 0.1 4"};
+var DASH_KEY  = {solid:"", dash:"5 3", dot:"0.1 3.4", dashdot:"7 3.4 0.1 3.4", dashdotdot:"5 2.7 0.1 2.7 0.1 2.7"};
+var DASH_SHORT = {solid:"実線", dash:"破線", dot:"点線", dashdot:"一点鎖線", dashdotdot:"二点鎖線"};
+var LN2 = Math.LN2, LN20 = Math.log(20), LN100 = Math.log(100);
+
+function sup(n){ return String(n).split("").map(function(c){return SUP[c]||c;}).join(""); }
+function dashOf(c){ return DASHES.indexOf(c && c.dash) >= 0 ? c.dash : "solid"; }
+function dashAttr(d){ return DASH_PLOT[d] ? ' stroke-dasharray="' + DASH_PLOT[d] + '"' : ''; }
+/* a small line sample in the curve's own colour and style */
+function lineSample(slot, d){
+  var v = DASH_KEY[d] || "";
+  return '<svg class="sw" width="20" height="6" viewBox="0 0 20 6" aria-hidden="true">' +
+    '<line x1="1" y1="3" x2="19" y2="3" stroke="var(' + slotVar(slot) + ')" ' +
+    'stroke-width="2.4" stroke-linecap="round"' + (v ? ' stroke-dasharray="' + v + '"' : '') + '/></svg>';
+}
+/* italic t with a subscripted percentage: t50%, t95%, t99% */
+function tLab(p){ return '<i>t</i><sub>' + p + '</sub>'; }
+function tLabSvg(p){
+  return '<tspan font-style="italic">t</tspan><tspan font-size="0.72em" dy="1.6">' + p + '</tspan>';
+}
+
+/* ============================ formatting ============================ */
+function sig(x, d){
+  if(!isFinite(x)) return "–";
+  if(x === 0) return "0";
+  var s = x.toPrecision(d || 3);
+  if(s.indexOf("e") < 0 && s.indexOf(".") >= 0) s = s.replace(/\.?0+$/, "");
+  return s;
+}
+/* keep three significant figures without dropping trailing zeros (59.0, 3.10) */
+function prec3(x){
+  if(!isFinite(x)) return "–";
+  if(x === 0) return "0";
+  var s = Number(x).toPrecision(3);
+  return s.indexOf("e") >= 0 ? sig(x, 3) : s;
+}
+var TIME_UNITS = [
+  [1e-9,  "ns", 1e9],
+  [1e-6,  "µs", 1e6],
+  [1e-3,  "ms", 1e3],
+  [1,     "s", 1],
+  [60,    "min", 1/60],
+  [3600,  "h", 1/3600],
+  [86400, "d", 1/86400],
+  [31557600, "y", 1/31557600]
+];
+function pickUnit(sec){
+  if(!isFinite(sec) || sec <= 0) return {u:"s", f:1};
+  for(var i = TIME_UNITS.length - 1; i >= 0; i--){
+    if(sec >= TIME_UNITS[i][0]){
+      /* 1.28 h reads worse than 76.8 min: drop one unit when the value is under 2 */
+      if(i > 0 && sec * TIME_UNITS[i][2] < 2) i--;
+      return {u:TIME_UNITS[i][1], f:TIME_UNITS[i][2]};
+    }
+  }
+  return {u:TIME_UNITS[0][1], f:TIME_UNITS[0][2]};
+}
+function fmtTime(sec){
+  var p = pickUnit(sec);
+  return {v:prec3(sec * p.f), u:p.u};
+}
+function fmtK(c){
+  var m = prec3(c.mant);
+  var e = c.exp === 0 ? "" : "×10" + sup(c.exp);
+  return m + e + " " + UNIT_LABEL[c.unit];
+}
+function kSec(c){
+  var k = Number(c.mant) * Math.pow(10, Number(c.exp));
+  return k * UNIT_TO_SEC[c.unit];
+}
+function metrics(c){
+  var k = kSec(c);
+  if(!isFinite(k) || k <= 0) return null;
+  return {k:k, half:LN2/k, t95:LN20/k, t99:LN100/k};
+}
+
+/* ============================ state ============================ */
+/* colour slots used by the seeded panels: 青 = 0, 黒 = 8, 赤 = 7 */
+var BLUE = 0, INK = 8, RED = 7;
+/* Panels are an ordered LIST reflowed into `cols` columns, so adding one panel
+   adds exactly one panel — never a whole row. */
+var DEFAULT = {
+  cols:3, yMode:"lin", theme:"light",
+  panels:[
+    {id:"pA", title:"アルカリ性-QM生成_95°C (Yamauchi 2020)", memo:"SM: 1.0 mM, NaOH: 1.0 M", basis:"mid", curves:[
+      {id:"a1", name:"H核型", mant:3.10, exp:-3, unit:"min", slot:BLUE, dash:"solid"},
+      {id:"a2", name:"G核型", mant:8.98, exp:-3, unit:"min", slot:INK,  dash:"solid"},
+      {id:"a3", name:"S核型", mant:21.0, exp:-3, unit:"min", slot:RED,  dash:"solid"}
+    ]},
+    {id:"pB", title:"酸性-BC生成_50°C (Shioya 2017)", memo:"SM: 1.0 mM, HClO4: 0.2 M", basis:"mid", curves:[
+      {id:"b1", name:"H核型", mant:72.2, exp:-3, unit:"min", slot:BLUE, dash:"solid"},
+      {id:"b2", name:"G核型", mant:59.0, exp:-3, unit:"min", slot:INK,  dash:"solid"},
+      {id:"b3", name:"S核型", mant:30.5, exp:-3, unit:"min", slot:RED,  dash:"solid"}
+    ]},
+    {id:"pC", title:"新しい枠", memo:"", basis:"mid", curves:[]}
+  ],
+  library:[
+    {id:"L1", name:"QM生成 95°C H核型", mant:3.10, exp:-3, unit:"min", dash:"solid"},
+    {id:"L2", name:"QM生成 95°C G核型", mant:8.98, exp:-3, unit:"min", dash:"solid"},
+    {id:"L3", name:"QM生成 95°C S核型", mant:21.0, exp:-3, unit:"min", dash:"solid"},
+    {id:"L4", name:"BC生成 50°C H核型", mant:72.2, exp:-3, unit:"min", dash:"solid"},
+    {id:"L5", name:"BC生成 50°C G核型", mant:59.0, exp:-3, unit:"min", dash:"solid"},
+    {id:"L6", name:"BC生成 50°C S核型", mant:30.5, exp:-3, unit:"min", dash:"solid"}
+  ],
+  view:"decay",
+  /* Arrhenius tab — the seeded numbers are illustrative examples, not literature */
+  arr:{
+    active:"asH",
+    sets:[
+      {id:"asH", name:"H-OMe (山内2020)", slot:BLUE, exp:-3, unit:"min", show:true,
+       rows:[{tc:"95", k:"3.10"}, {tc:"105", k:"8.70"}, {tc:"115", k:"23.8"}]},
+      {id:"asG", name:"G-OMe (山内2020)", slot:INK, exp:-3, unit:"min", show:true,
+       rows:[{tc:"85", k:"3.10"}, {tc:"95", k:"8.98"}, {tc:"105", k:"24.3"}]},
+      {id:"asS", name:"S-OMe (山内2020)", slot:RED, exp:-3, unit:"min", show:true,
+       rows:[{tc:"85", k:"7.83"}, {tc:"95", k:"21.0"}, {tc:"105", k:"54.6"}]}
+    ]
+  }
+};
+var MAX_PANELS = 36;
+var uidN = 0;
+function uid(){ uidN++; return "u" + Date.now().toString(36) + uidN; }
+function newPanel(){ return {id:uid(), title:"新しい枠", memo:"", basis:"mid", curves:[]}; }
+/* horizontal-axis basis: which curve's t99% sets the right-hand edge */
+function basisOf(p){
+  return (p && (p.basis === "slow" || p.basis === "fast")) ? p.basis : "mid";
+}
+
+/* accepts both the current list shape and the older {"row_col": …} object */
+function normalize(st){
+  if(!st || typeof st !== "object" || !st.panels) return null;
+  if(!Array.isArray(st.panels)){
+    var out = [], rows = st.rows || 1, cols = st.cols || 2, r, c, p;
+    for(r = 0; r < rows; r++){
+      for(c = 0; c < cols; c++){
+        p = st.panels[r + "_" + c];
+        out.push(p || newPanel());
+      }
+    }
+    st.panels = out;
+  }
+  delete st.rows;
+  st.cols = Math.min(6, Math.max(1, Number(st.cols) || 3));
+  st.panels = st.panels.slice(0, MAX_PANELS).map(function(p){
+    if(!p || typeof p !== "object") p = newPanel();
+    if(!p.id) p.id = uid();
+    if(typeof p.title !== "string") p.title = "新しい枠";
+    if(typeof p.memo !== "string") p.memo = "";
+    p.basis = basisOf(p);
+    if(!Array.isArray(p.curves)) p.curves = [];
+    return p;
+  });
+  if(!st.panels.length) st.panels.push(newPanel());
+  if(!Array.isArray(st.library)) st.library = [];
+  if(!st.yMode) st.yMode = "lin";
+  /* light is the default; existing saves are moved to it once, then respected */
+  if(!st.themeInit){ st.theme = "light"; st.themeInit = true; }
+  if(["auto","light","dark"].indexOf(st.theme) < 0) st.theme = "light";
+  if(st.view !== "arr") st.view = "decay";
+  /* Arrhenius: accept the older single-dataset shape */
+  if(st.arr && Array.isArray(st.arr.rows) && !st.arr.sets){
+    st.arr = {active:"as1", sets:[{id:"as1", name:"系 1", slot:0,
+      exp:(typeof st.arr.exp === "number" ? st.arr.exp : -3),
+      unit:st.arr.unit || "min", show:true, rows:st.arr.rows}]};
+  }
+  if(!st.arr || !Array.isArray(st.arr.sets) || !st.arr.sets.length){
+    st.arr = JSON.parse(JSON.stringify(DEFAULT.arr));
+  }
+  st.arr.sets = st.arr.sets.slice(0, 12).map(function(s, i){
+    if(!s || typeof s !== "object") s = {};
+    if(!s.id) s.id = "as" + i + "_" + Math.random().toString(36).slice(2, 6);
+    if(typeof s.name !== "string" || !s.name) s.name = "系 " + (i + 1);
+    if(typeof s.slot !== "number") s.slot = i % SLOTS.length;
+    if(typeof s.exp !== "number") s.exp = -3;
+    if(["s","min","h"].indexOf(s.unit) < 0) s.unit = "min";
+    s.show = s.show !== false;
+    if(!Array.isArray(s.rows) || s.rows.length < 2) s.rows = [{tc:"", k:""}, {tc:"", k:""}, {tc:"", k:""}];
+    return s;
+  });
+  if(!st.arr.sets.some(function(s){ return s.id === st.arr.active; })){
+    st.arr.active = st.arr.sets[0].id;
+  }
+  return st;
+}
+
+var S = null;
+try{
+  var raw = localStorage.getItem(STORE);
+  if(raw) S = normalize(JSON.parse(raw));
+}catch(e){ S = null; }
+if(!S) S = normalize(JSON.parse(JSON.stringify(DEFAULT)));
+
+function save(){
+  try{ localStorage.setItem(STORE, JSON.stringify(S)); }catch(e){}
+}
+
+/* always keep one empty panel at the end, so there is somewhere to start the
+   next curve. Called after a curve is added, never on plain redraws. */
+function ensureSpare(){
+  var last = S.panels[S.panels.length - 1];
+  if(last && !last.curves.length) return;
+  if(S.panels.length < MAX_PANELS) S.panels.push(newPanel());
+}
+
+/* ============================ scales ============================ */
+/* square drawing area: PW === PH. The .plot container carries the matching
+   aspect ratio (VB_W/VB_H) so the square survives scaling. */
+var M = {l:44, r:12, t:13, b:30};
+var PW = 210, PH = 210;
+var VB_W = M.l + PW + M.r, VB_H = M.t + PH + M.b;   /* 266 x 253 */
+
+function niceStep(range, target){
+  var raw = range / target;
+  var mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  var n = raw / mag, s;
+  if(n <= 1) s = 1; else if(n <= 2) s = 2; else if(n <= 2.5) s = 2.5;
+  else if(n <= 5) s = 5; else s = 10;
+  return s * mag;
+}
+function xTicks(maxU){
+  var step = niceStep(maxU, 4), out = [], v = 0, guard = 0;
+  while(v <= maxU * 1.0001 && guard++ < 50){ out.push(v); v += step; }
+  return {ticks:out, step:step};
+}
+function tickLabel(v, step){
+  if(v === 0) return "0";
+  var d = 0;
+  while(d < 6 && Math.abs(step * Math.pow(10, d) - Math.round(step * Math.pow(10, d))) > 1e-9) d++;
+  return v.toFixed(d);
+}
+
+/* ============================ chart ============================ */
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function buildChart(p){
+  var live = [];
+  for(var i = 0; i < p.curves.length; i++){
+    var m = metrics(p.curves[i]);
+    if(m) live.push({c:p.curves[i], m:m});
+  }
+  if(!live.length) return null;
+
+  /* the reference curve sets the right-hand edge and carries the t50/95/99 marks */
+  var sorted = live.slice().sort(function(a, b){ return a.m.t99 - b.m.t99; });
+  var basis = basisOf(p), refI;
+  if(basis === "fast") refI = 0;
+  else if(basis === "slow") refI = sorted.length - 1;
+  else refI = Math.floor((sorted.length - 1) / 2);   /* mid (default) */
+  var ref = sorted[refI];
+  var tmax = ref.m.t99;
+  if(!isFinite(tmax) || tmax <= 0) return null;
+
+  var pu = pickUnit(tmax);
+  var maxU = tmax * pu.f;
+  var xt = xTicks(maxU);
+  var domU = xt.ticks[xt.ticks.length - 1];
+  if(domU < maxU) domU = maxU;
+
+  var log = (S.yMode === "log");
+  function X(tSec){ return M.l + (tSec * pu.f / domU) * PW; }
+  function Y(pct){
+    if(log){
+      var l = Math.log10(Math.max(pct, 1e-6));
+      return M.t + (2 - l) / 2 * PH;      /* 100% -> top, 1% -> bottom */
+    }
+    return M.t + (100 - pct) / 100 * PH;
+  }
+
+  var yTicks = log ? [100, 50, 10, 5, 1] : [100, 75, 50, 25, 0];
+  var clipId = "clip" + Math.random().toString(36).slice(2, 8);
+  var g = [];
+
+  g.push('<defs><clipPath id="'+clipId+'"><rect x="'+M.l+'" y="'+M.t+'" width="'+PW+'" height="'+PH+'"/></clipPath></defs>');
+
+  /* gridlines + y labels */
+  yTicks.forEach(function(v){
+    var y = Y(v);
+    g.push('<line x1="'+M.l+'" y1="'+y.toFixed(2)+'" x2="'+(M.l+PW)+'" y2="'+y.toFixed(2)+'" stroke="var(--rule)" stroke-width="1"/>');
+    g.push('<text x="'+(M.l-6)+'" y="'+(y+3.2).toFixed(2)+'" text-anchor="end" font-family="var(--chart)" font-size="9" fill="var(--ink-3)">'+v+'</text>');
+  });
+  /* x ticks */
+  xt.ticks.forEach(function(v){
+    var x = M.l + (v / domU) * PW;
+    g.push('<line x1="'+x.toFixed(2)+'" y1="'+(M.t+PH)+'" x2="'+x.toFixed(2)+'" y2="'+(M.t+PH+4)+'" stroke="var(--baseline)" stroke-width="1"/>');
+    g.push('<text x="'+x.toFixed(2)+'" y="'+(M.t+PH+14)+'" text-anchor="middle" font-family="var(--chart)" font-size="9" fill="var(--ink-3)">'+esc(tickLabel(v, xt.step))+'</text>');
+  });
+  /* axis titles (the enclosing frame is drawn last, over the curves) */
+  g.push('<text x="'+(M.l + PW/2)+'" y="'+(M.t+PH+26)+'" text-anchor="middle" font-family="var(--chart)" font-size="9.5" fill="var(--ink)">時間 <tspan font-style="italic">t</tspan> ('+pu.u+')</text>');
+  g.push('<text transform="translate(11,'+(M.t+PH/2)+') rotate(-90)" text-anchor="middle" font-family="var(--chart)" font-size="9.5" fill="var(--ink)">' +
+    '残存率 [C]/[C]<tspan font-size="0.72em" dy="1.6">0</tspan><tspan dy="-1.6"> (%)</tspan></text>');
+
+  /* t50% / t95% / t99% marks for the reference curve */
+  (function(){
+    var mm = ref.m;
+    [[mm.half, tLabSvg("50%")], [mm.t95, tLabSvg("95%")], [mm.t99, tLabSvg("99%")]].forEach(function(a){
+      if(a[0] > tmax * 1.0001) return;
+      var x = X(a[0]);
+      var nearEdge = (x > M.l + PW - 26);
+      g.push('<line x1="'+x.toFixed(2)+'" y1="'+M.t+'" x2="'+x.toFixed(2)+'" y2="'+(M.t+PH)+'" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 3" opacity="0.75"/>');
+      g.push('<text x="'+(nearEdge ? (x-3).toFixed(2) : (x+3).toFixed(2))+'" y="'+(M.t+9)+'"'+(nearEdge ? ' text-anchor="end"' : '')+' font-family="var(--chart)" font-size="8.5" fill="var(--ink-3)">'+a[1]+'</text>');
+    });
+  })();
+
+  /* curves */
+  var N = 220;
+  live.forEach(function(o){
+    var d = "", started = false;
+    for(var i = 0; i <= N; i++){
+      var t = tmax * i / N;
+      var pct = 100 * Math.exp(-o.m.k * t);
+      var x = X(t), y = Y(pct);
+      d += (started ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2) + " ";
+      started = true;
+    }
+    var col = "var(" + slotVar(o.c.slot) + ")";
+    g.push('<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
+      dashAttr(dashOf(o.c)) + ' clip-path="url(#'+clipId+')"/>');
+    /* start marker with surface ring */
+    g.push('<circle cx="'+X(0).toFixed(2)+'" cy="'+Y(100).toFixed(2)+'" r="3.4" fill="'+col+'" stroke="var(--surface)" stroke-width="2"/>');
+  });
+
+  /* solid frame closing the square plot box on all four sides */
+  g.push('<rect x="'+M.l+'" y="'+M.t+'" width="'+PW+'" height="'+PH+'" fill="none" stroke="var(--baseline)" stroke-width="1"/>');
+
+  /* hover layer */
+  g.push('<g class="hover" opacity="0"><line class="hx" y1="'+M.t+'" y2="'+(M.t+PH)+'" stroke="var(--ink-3)" stroke-width="1"/>' +
+    live.map(function(o){
+      return '<circle class="hd" r="3.6" fill="var('+slotVar(o.c.slot)+')" stroke="var(--surface)" stroke-width="2"/>';
+    }).join("") + '</g>');
+  g.push('<rect class="hit" x="'+M.l+'" y="'+M.t+'" width="'+PW+'" height="'+PH+'" fill="transparent" style="cursor:crosshair"/>');
+
+  return {
+    svg:'<svg viewBox="0 0 '+VB_W+' '+VB_H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="消失曲線">'+g.join("")+'</svg>',
+    live:live, tmax:tmax, X:X, Y:Y, unit:pu, refId:ref.c.id
+  };
+}
+
+/* ============================ render ============================ */
+var grid = document.getElementById("grid");
+var GRIP = '<svg width="10" height="13" viewBox="0 0 10 13" aria-hidden="true"><g fill="currentColor">' +
+  '<circle cx="2.6" cy="2.4" r="1.15"/><circle cx="7.4" cy="2.4" r="1.15"/>' +
+  '<circle cx="2.6" cy="6.5" r="1.15"/><circle cx="7.4" cy="6.5" r="1.15"/>' +
+  '<circle cx="2.6" cy="10.6" r="1.15"/><circle cx="7.4" cy="10.6" r="1.15"/></g></svg>';
+
+function panelFoot(p, chart){
+  if(!chart) return "";
+  var head = '<div class="lh"><span></span><span></span>' +
+    '<span class="hd"><i>k</i><sub>obs</sub></span>' +
+    '<span class="hd">'+tLab("50%")+'</span>' +
+    '<span class="hd">'+tLab("95%")+'</span>' +
+    '<span class="hd">'+tLab("99%")+'</span>' +
+    '<span></span></div>';
+  var rows = chart.live.map(function(o){
+    var a = fmtTime(o.m.half), b = fmtTime(o.m.t95), c = fmtTime(o.m.t99);
+    return '<div class="li">' +
+      '<button type="button" class="dashbtn" data-dash="'+o.c.id+'" ' +
+      'title="線種を変更 Change line style">'+lineSample(o.c.slot, dashOf(o.c))+'</button>' +
+      '<span class="nm">'+esc(o.c.name || "無題") +
+      (chart.live.length > 1 && o.c.id === chart.refId
+        ? '<span class="refmark" title="この曲線を基準に横軸と t50% / t95% / t99% を表示しています">基準</span>'
+        : '') + '</span>' +
+      '<span class="kv">'+esc(fmtK(o.c))+'</span>' +
+      '<span class="tv">'+a.v+'<small>'+a.u+'</small></span>' +
+      '<span class="tv">'+b.v+'<small>'+b.u+'</small></span>' +
+      '<span class="tv">'+c.v+'<small>'+c.u+'</small></span>' +
+      '<button type="button" class="x" data-del="'+o.c.id+'" aria-label="この曲線を削除">×</button>' +
+      '</div>';
+  }).join("");
+  return '<div class="legend"><div class="lgrid">' + head + rows + '</div></div>';
+}
+
+/* ---------- theme: auto follows the viewer's Claude/OS setting ---------- */
+var HOST_THEME = document.documentElement.getAttribute("data-theme");
+function applyTheme(){
+  var t = S.theme || "auto";
+  var root = document.documentElement;
+  if(t === "auto"){
+    if(HOST_THEME) root.setAttribute("data-theme", HOST_THEME);
+    else root.removeAttribute("data-theme");
+  }else{
+    root.setAttribute("data-theme", t);
+  }
+  document.getElementById("thAuto").setAttribute("aria-pressed", t === "auto");
+  document.getElementById("thLight").setAttribute("aria-pressed", t === "light");
+  document.getElementById("thDark").setAttribute("aria-pressed", t === "dark");
+}
+function setTheme(t){ S.theme = t; applyTheme(); save(); }
+document.getElementById("thAuto").addEventListener("click", function(){ setTheme("auto"); });
+document.getElementById("thLight").addEventListener("click", function(){ setTheme("light"); });
+document.getElementById("thDark").addEventListener("click", function(){ setTheme("dark"); });
+
+function render(){
+  applyTheme();
+  document.getElementById("colNum").textContent = S.cols;
+  document.getElementById("yLin").setAttribute("aria-pressed", S.yMode === "lin");
+  document.getElementById("yLog").setAttribute("aria-pressed", S.yMode === "log");
+  grid.style.setProperty("--cols", S.cols);
+  grid.innerHTML = "";
+
+  S.panels.forEach(function(p, idx){
+    (function(){
+      var chart = buildChart(p);
+      var el = document.createElement("div");
+      el.className = "panel" + (chart ? "" : " empty");
+      el.setAttribute("data-idx", String(idx));
+
+      var basisSel = (chart && chart.live.length > 1)
+        ? '<select class="basis" aria-label="横軸の基準" title="横軸の上限をどの曲線に合わせるか">' +
+          ['slow','mid','fast'].map(function(b){
+            var lbl = b === "slow" ? "軸: 最遅" : (b === "mid" ? "軸: 中間" : "軸: 最速");
+            return '<option value="'+b+'"'+(basisOf(p)===b?' selected':'')+'>'+lbl+'</option>';
+          }).join("") + '</select>'
+        : "";
+
+      var head = '<div class="p-head">' +
+        '<button type="button" class="icon grip" data-act="grip" draggable="true" ' +
+        'title="ドラッグ／クリックで枠を並び替え" aria-label="この枠を並び替える">' + GRIP + '</button>' +
+        '<input class="p-title" value="'+esc(p.title)+'" title="'+esc(p.title)+'" aria-label="枠の名前">' +
+        '<div class="p-acts">' +
+        '<button type="button" class="icon" data-act="add" aria-label="曲線を追加">+</button>' +
+        '<button type="button" class="icon warn" data-act="clear" ' +
+        'title="'+(chart ? "曲線をすべて削除" : "この枠を削除")+'" ' +
+        'aria-label="'+(chart ? "曲線をすべて削除" : "この枠を削除")+'">×</button>' +
+        '</div></div>' +
+        '<input class="p-memo" value="'+esc(p.memo || "")+'" placeholder="メモ Memo" ' +
+        'aria-label="この枠のメモ" spellcheck="false">';
+
+      if(chart){
+        el.innerHTML = head +
+          (basisSel ? '<div class="p-sub">'+basisSel+'</div>' : '') +
+          '<div class="plot">'+chart.svg+'<div class="tip"></div></div>' +
+          '<div class="p-foot">'+panelFoot(p, chart)+'</div>';
+        wireHover(el, chart);
+      }else{
+        el.innerHTML = head +
+          '<div class="addbox"><button type="button" class="addbtn" data-act="add">' +
+          '<span class="plus">+</span>消失曲線を追加<span class="en">Add decay curve</span></button></div>';
+      }
+      grid.appendChild(el);
+    })();
+  });
+  renderLib();
+  applyMoveState();
+  document.getElementById("ioText").value = JSON.stringify(S, null, 1);
+  save();
+}
+
+/* ---------- reordering: drag a panel's handle, or click two handles ---------- */
+var moveKey = null, dragKey = null;   /* panel indices, as strings */
+
+function applyMoveState(){
+  document.getElementById("moveHint").hidden = !moveKey;
+  Array.prototype.forEach.call(grid.children, function(el){
+    el.classList.toggle("picked", el.dataset.idx === moveKey);
+  });
+}
+function setMove(k){ moveKey = k; applyMoveState(); }
+function swapPanels(a, b){
+  var i = Number(a), j = Number(b);
+  if(a === null || b === null || a === b || !S.panels[i] || !S.panels[j]){ setMove(null); return; }
+  var t = S.panels[i]; S.panels[i] = S.panels[j]; S.panels[j] = t;
+  moveKey = null;
+  render();
+}
+document.getElementById("moveCancel").addEventListener("click", function(){ setMove(null); });
+
+grid.addEventListener("dragstart", function(e){
+  var g = e.target.closest(".grip"); if(!g) return;
+  var panel = g.closest(".panel");
+  dragKey = panel.dataset.idx;
+  setMove(null);
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed = "move";
+    try{ e.dataTransfer.setData("text/plain", dragKey); }catch(err){}
+    if(e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(panel, 40, 24);
+  }
+  panel.classList.add("dragging");
+});
+grid.addEventListener("dragover", function(e){
+  if(!dragKey) return;
+  var panel = e.target.closest(".panel"); if(!panel) return;
+  e.preventDefault();
+  if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  if(panel.dataset.idx !== dragKey) panel.classList.add("dropzone");
+});
+grid.addEventListener("dragleave", function(e){
+  var panel = e.target.closest(".panel");
+  if(panel && !panel.contains(e.relatedTarget)) panel.classList.remove("dropzone");
+});
+grid.addEventListener("drop", function(e){
+  var panel = e.target.closest(".panel");
+  if(!panel || !dragKey) return;
+  e.preventDefault();
+  var src = dragKey; dragKey = null;
+  swapPanels(src, panel.dataset.idx);
+});
+grid.addEventListener("dragend", function(){
+  dragKey = null;
+  Array.prototype.forEach.call(grid.querySelectorAll(".panel"), function(p){
+    p.classList.remove("dropzone"); p.classList.remove("dragging");
+  });
+});
+
+function wireHover(el, chart){
+  var svg = el.querySelector(".plot svg");   /* not the grip icon in the header */
+  var tip = el.querySelector(".tip");
+  var hover = svg.querySelector(".hover");
+  var hx = svg.querySelector(".hx");
+  var dots = svg.querySelectorAll(".hd");
+  var hit = svg.querySelector(".hit");
+
+  function move(ev){
+    var pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    var ctm = svg.getScreenCTM();
+    if(!ctm) return;
+    var loc = pt.matrixTransform(ctm.inverse());
+    var frac = (loc.x - M.l) / PW;
+    frac = Math.max(0, Math.min(1, frac));
+    var xpx = M.l + frac * PW;
+    /* invert X(): recover the time in seconds at this fraction of the domain */
+    var domSec = (chart.X(chart.tmax) - M.l) / PW;   /* = tmax / domain, in domain units */
+    var tSec = frac / (domSec / chart.tmax);
+
+    hover.setAttribute("opacity", "1");
+    hx.setAttribute("x1", xpx.toFixed(2));
+    hx.setAttribute("x2", xpx.toFixed(2));
+
+    var rows = "";
+    chart.live.forEach(function(o, i){
+      var pct = 100 * Math.exp(-o.m.k * tSec);
+      var y = chart.Y(pct);
+      var d = dots[i];
+      if(d){
+        d.setAttribute("cx", xpx.toFixed(2));
+        d.setAttribute("cy", y.toFixed(2));
+        d.setAttribute("opacity", (y >= M.t - 1 && y <= M.t + PH + 1) ? "1" : "0");
+      }
+      rows += '<div class="row"><span class="dot" style="background:var('+slotVar(o.c.slot)+')"></span>' +
+              esc(o.c.name || "曲線") + ' &nbsp;' + (pct >= 1 ? pct.toFixed(1) : pct.toPrecision(2)) + ' %</div>';
+    });
+    var ft = fmtTime(tSec);
+    tip.innerHTML = '<div class="t0"><i>t</i> = ' + ft.v + ' ' + ft.u + '</div>' + rows;
+    tip.style.opacity = "1";
+
+    var box = el.querySelector(".plot").getBoundingClientRect();
+    var lx = ev.clientX - box.left + 12;
+    var ly = ev.clientY - box.top + 10;
+    if(lx + tip.offsetWidth > box.width - 4) lx = ev.clientX - box.left - tip.offsetWidth - 12;
+    if(ly + tip.offsetHeight > box.height - 4) ly = box.height - tip.offsetHeight - 4;
+    tip.style.left = Math.max(2, lx) + "px";
+    tip.style.top = Math.max(2, ly) + "px";
+  }
+  function leave(){
+    hover.setAttribute("opacity", "0");
+    tip.style.opacity = "0";
+  }
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", leave);
+  hit.addEventListener("pointerdown", move);
+}
+
+/* ============================ library ============================ */
+function renderLib(){
+  var box = document.getElementById("libChips");
+  if(!S.library || !S.library.length){
+    box.innerHTML = '<span class="empty-note">保存された曲線はまだありません。 No saved curves yet.</span>';
+  }else{
+    box.innerHTML = S.library.map(function(L){
+      return '<span class="chip"><span class="nm">'+esc(L.name)+'</span>' +
+             '<span class="kv">'+esc(fmtK(L))+' · '+DASH_SHORT[dashOf(L)]+'</span>' +
+             '<button type="button" class="x" data-lib-del="'+L.id+'" aria-label="削除">×</button></span>';
+    }).join("");
+  }
+  var list = document.getElementById("libList");
+  if(!S.library || !S.library.length){
+    list.innerHTML = '<div class="empty-note">保存された曲線はまだありません。〈新規入力〉で作成し「ライブラリに保存」を押してください。</div>';
+  }else{
+    list.innerHTML = S.library.map(function(L){
+      return '<div class="librow"><span class="nm">'+esc(L.name)+'</span>' +
+             '<span class="kv">'+esc(fmtK(L))+' · '+DASH_SHORT[dashOf(L)]+'</span>' +
+             '<button type="button" class="btn" data-lib-use="'+L.id+'">呼び出す</button>' +
+             '<button type="button" class="icon warn" data-lib-del="'+L.id+'" aria-label="削除">×</button></div>';
+    }).join("");
+  }
+}
+
+/* ============================ modal ============================ */
+var overlay = document.getElementById("overlay");
+var fName = document.getElementById("fName"), fMant = document.getElementById("fMant"),
+    fExp = document.getElementById("fExp"), fUnit = document.getElementById("fUnit"),
+    fSw = document.getElementById("fSw"), fPrev = document.getElementById("fPrev"),
+    fDash = document.getElementById("fDash");
+var targetKey = null, chosenSlot = 0;
+
+(function initExp(){
+  var opts = [];
+  for(var n = 3; n >= -12; n--){
+    opts.push('<option value="'+n+'">' + (n === 0 ? "×1 (なし)" : "×10" + sup(n)) + '</option>');
+  }
+  fExp.innerHTML = opts.join("");
+  fExp.value = "-3";
+})();
+var SLOT_NAME = ["青 Blue","橙 Orange","青緑 Teal","黄 Yellow","桃 Pink",
+                 "緑 Green","紫 Violet","赤 Red","黒 Ink"];
+(function initSw(){
+  fSw.innerHTML = SLOTS.map(function(v, i){
+    return '<button type="button" class="sw-btn" data-slot="'+i+'" style="background:var('+v+')" ' +
+      'title="'+SLOT_NAME[i]+'" aria-label="'+SLOT_NAME[i]+'" aria-pressed="'+(i===0)+'"></button>';
+  }).join("");
+})();
+function setSlot(i){
+  chosenSlot = i;
+  Array.prototype.forEach.call(fSw.querySelectorAll(".sw-btn"), function(b){
+    b.setAttribute("aria-pressed", String(Number(b.dataset.slot) === i));
+  });
+}
+fSw.addEventListener("click", function(e){
+  var b = e.target.closest(".sw-btn"); if(!b) return;
+  setSlot(Number(b.dataset.slot)); updatePrev();
+});
+
+function formCurve(){
+  return {
+    id:uid(),
+    name:(fName.value || "").trim() || ("k = " + sig(Number(fMant.value), 3)),
+    mant:Number(fMant.value),
+    exp:Number(fExp.value),
+    unit:fUnit.value,
+    slot:chosenSlot,
+    dash:fDash.value
+  };
+}
+function updatePrev(){
+  var c = formCurve(), m = metrics(c);
+  if(!m){
+    fPrev.innerHTML = '<div class="full" style="border:0;padding:0;color:var(--danger)"><i>k</i><sub>obs</sub> は 0 より大きい数値を入力してください。 Enter a positive <i>k</i>.</div>';
+    return;
+  }
+  var a = fmtTime(m.half), b = fmtTime(m.t95), d = fmtTime(m.t99);
+  fPrev.innerHTML =
+    '<div><div class="k">'+tLab("50%")+'</div><div class="v">'+a.v+'<small>'+a.u+'</small></div></div>' +
+    '<div><div class="k">'+tLab("95%")+'</div><div class="v">'+b.v+'<small>'+b.u+'</small></div></div>' +
+    '<div><div class="k">'+tLab("99%")+'</div><div class="v">'+d.v+'<small>'+d.u+'</small></div></div>' +
+    '<div class="full" style="display:flex;align-items:center;gap:8px">'+lineSample(c.slot, dashOf(c)) +
+    '<span><i>k</i><sub>obs</sub> = '+esc(fmtK(c))+' &nbsp;=&nbsp; '+sig(m.k, 3)+' s⁻¹</span></div>';
+}
+["input","change"].forEach(function(ev){
+  [fName, fMant, fExp, fUnit, fDash].forEach(function(el){ el.addEventListener(ev, updatePrev); });
+});
+
+function openModal(idx){
+  targetKey = idx;
+  var p = S.panels[Number(idx)];
+  var used = (p && p.curves) ? p.curves.map(function(c){ return c.slot; }) : [];
+  var next = 0;
+  for(var i = 0; i < SLOTS.length; i++){ if(used.indexOf(i) < 0){ next = i; break; } }
+  setSlot(next);
+  fName.value = "";
+  fDash.value = "solid";
+  showTab("new");
+  updatePrev();
+  overlay.hidden = false;
+  setTimeout(function(){ fMant.focus(); fMant.select(); }, 20);
+}
+function closeModal(){ overlay.hidden = true; targetKey = null; }
+function showTab(which){
+  document.getElementById("tabNew").setAttribute("aria-selected", which === "new");
+  document.getElementById("tabLib").setAttribute("aria-selected", which === "lib");
+  document.getElementById("paneNew").hidden = which !== "new";
+  document.getElementById("paneLib").hidden = which !== "lib";
+}
+document.getElementById("tabNew").addEventListener("click", function(){ showTab("new"); });
+document.getElementById("tabLib").addEventListener("click", function(){ showTab("lib"); });
+document.getElementById("mCancel").addEventListener("click", closeModal);
+document.getElementById("mCancel2").addEventListener("click", closeModal);
+overlay.addEventListener("mousedown", function(e){ if(e.target === overlay) closeModal(); });
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape") return;
+  if(!overlay.hidden) closeModal();
+  else if(moveKey) setMove(null);
+  else if(typeof setMoveId !== "undefined" && setMoveId !== null){ setMoveId = null; renderArr(); }
+});
+
+document.getElementById("mOk").addEventListener("click", function(){
+  var c = formCurve();
+  if(!metrics(c)) { fMant.focus(); return; }
+  var p = targetKey === null ? null : S.panels[Number(targetKey)];
+  if(!p) return;
+  p.curves.push(c);
+  ensureSpare();
+  closeModal();
+  render();
+});
+document.getElementById("mSave").addEventListener("click", function(){
+  var c = formCurve();
+  if(!metrics(c)){ fMant.focus(); return; }
+  S.library.push({id:uid(), name:c.name, mant:c.mant, exp:c.exp, unit:c.unit, dash:dashOf(c)});
+  renderLib(); save();
+  document.getElementById("libDrawer").hidden = false;
+});
+document.getElementById("libList").addEventListener("click", function(e){
+  var use = e.target.closest("[data-lib-use]");
+  if(use){
+    var L = S.library.filter(function(x){ return x.id === use.dataset.libUse; })[0];
+    var p = targetKey === null ? null : S.panels[Number(targetKey)];
+    if(!L || !p) return;
+    var used = p.curves.map(function(c){ return c.slot; });
+    var next = 0;
+    for(var i = 0; i < SLOTS.length; i++){ if(used.indexOf(i) < 0){ next = i; break; } }
+    p.curves.push({id:uid(), name:L.name, mant:L.mant, exp:L.exp, unit:L.unit, slot:next, dash:dashOf(L)});
+    ensureSpare();
+    closeModal(); render();
+    return;
+  }
+  var del = e.target.closest("[data-lib-del]");
+  if(del){
+    S.library = S.library.filter(function(x){ return x.id !== del.dataset.libDel; });
+    renderLib(); save();
+  }
+});
+document.getElementById("libChips").addEventListener("click", function(e){
+  var del = e.target.closest("[data-lib-del]");
+  if(!del) return;
+  S.library = S.library.filter(function(x){ return x.id !== del.dataset.libDel; });
+  renderLib(); save();
+});
+
+/* ============================ panel events ============================ */
+grid.addEventListener("click", function(e){
+  var panel = e.target.closest(".panel"); if(!panel) return;
+  var key = panel.dataset.idx;
+  var idx = Number(key);
+  var act = e.target.closest("[data-act]");
+  if(act){
+    if(act.dataset.act === "grip"){
+      if(moveKey === null) setMove(key);
+      else if(moveKey === key) setMove(null);
+      else swapPanels(moveKey, key);
+    }
+    else if(act.dataset.act === "add"){ setMove(null); openModal(key); }
+    else if(act.dataset.act === "clear"){
+      /* first click empties the panel, a second click removes the panel itself */
+      if(S.panels[idx].curves.length) S.panels[idx].curves = [];
+      else if(S.panels.length > 1) S.panels.splice(idx, 1);
+      render();
+    }
+    return;
+  }
+  var dsh = e.target.closest("[data-dash]");
+  if(dsh){
+    var pd = S.panels[idx];
+    pd.curves.forEach(function(c){
+      if(c.id === dsh.dataset.dash){
+        c.dash = DASHES[(DASHES.indexOf(dashOf(c)) + 1) % DASHES.length];
+      }
+    });
+    render();
+    return;
+  }
+  var del = e.target.closest("[data-del]");
+  if(del){
+    var p = S.panels[idx];
+    p.curves = p.curves.filter(function(c){ return c.id !== del.dataset.del; });
+    render();
+  }
+});
+grid.addEventListener("change", function(e){
+  var panel = e.target.closest(".panel"); if(!panel) return;
+  if(e.target.classList.contains("basis")){
+    S.panels[Number(panel.dataset.idx)].basis = e.target.value;
+    render();
+  }
+});
+grid.addEventListener("input", function(e){
+  var panel = e.target.closest(".panel");
+  if(!panel) return;
+  var p = S.panels[Number(panel.dataset.idx)];
+  if(!p) return;
+  if(e.target.classList.contains("p-title")) p.title = e.target.value;
+  else if(e.target.classList.contains("p-memo")) p.memo = e.target.value;
+  else return;
+  save();
+});
+
+/* ============================ toolbar ============================ */
+function bumpCols(d){
+  var v = S.cols + d;
+  if(v < 1 || v > 6) return;
+  S.cols = v; render();
+}
+document.getElementById("colPlus").addEventListener("click", function(){ bumpCols(1); });
+document.getElementById("colMinus").addEventListener("click", function(){ bumpCols(-1); });
+/* one click adds exactly one panel, wherever the flow puts it */
+document.getElementById("addPanel").addEventListener("click", function(){
+  if(S.panels.length >= MAX_PANELS) return;
+  S.panels.push(newPanel());
+  render();
+  var last = grid.lastElementChild;
+  if(last && last.scrollIntoView) last.scrollIntoView({block:"nearest", behavior:"smooth"});
+});
+document.getElementById("yLin").addEventListener("click", function(){ S.yMode = "lin"; render(); });
+document.getElementById("yLog").addEventListener("click", function(){ S.yMode = "log"; render(); });
+document.getElementById("libBtn").addEventListener("click", function(){
+  var d = document.getElementById("libDrawer"); d.hidden = !d.hidden;
+});
+document.getElementById("ioBtn").addEventListener("click", function(){
+  var d = document.getElementById("ioDrawer"); d.hidden = !d.hidden;
+});
+document.getElementById("clearAll").addEventListener("click", function(){
+  S.panels.forEach(function(p){ p.curves = []; });
+  setMove(null);
+  render();
+});
+/* File save works two ways: through the claude.ai viewer capability when the page
+   runs as an Artifact, and through an ordinary browser download when it is served
+   as a normal web page (GitHub Pages, a lab server, …). */
+var downloads = null;
+var IN_CLAUDE = !!(window.claude && typeof window.claude.use === "function");
+if(IN_CLAUDE){
+  window.claude.use("downloads").then(function(d){
+    downloads = d;
+    document.getElementById("ioSave").hidden = !d;
+  }, function(){});
+}else{
+  document.getElementById("ioSave").hidden = false;
+  document.getElementById("ioOpenWrap").hidden = false;
+}
+function saveJsonFile(text, filename){
+  if(downloads) return downloads.save({filename:filename, data:text});
+  return new Promise(function(resolve, reject){
+    try{
+      var blob = new Blob([text], {type:"application/json"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 1000);
+      resolve({status:"saved"});
+    }catch(e){ reject({code:"unavailable", message:String(e)}); }
+  });
+}
+document.getElementById("ioSave").addEventListener("click", function(){
+  var msg = document.getElementById("ioMsg");
+  var stamp = new Date().toISOString().slice(0, 10);
+  if(downloads) msg.textContent = "保存を確認中…";
+  saveJsonFile(document.getElementById("ioText").value, "decay-sim-" + stamp + ".json")
+    .then(function(){ msg.textContent = "保存しました Saved"; },
+          function(err){
+            var code = (err && err.code) || "unavailable";
+            msg.textContent = code === "declined"
+              ? "保存をキャンセルしました"
+              : "保存できませんでした（" + code + "）。コピーをお使いください。";
+          });
+});
+var ioFile = document.getElementById("ioFile");
+if(ioFile){
+  ioFile.addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    var input = this;
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      document.getElementById("ioText").value = String(r.result);
+      importJson();
+      input.value = "";
+    };
+    r.onerror = function(){
+      document.getElementById("ioMsg").textContent = "ファイルを読めませんでした";
+      input.value = "";
+    };
+    r.readAsText(f);
+  });
+}
+document.getElementById("ioCopy").addEventListener("click", function(){
+  var ta = document.getElementById("ioText");
+  var msg = document.getElementById("ioMsg");
+  ta.select();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value).then(function(){
+      msg.textContent = "コピーしました Copied";
+    }, function(){ msg.textContent = "手動でコピーしてください"; });
+  }else{
+    msg.textContent = "手動でコピーしてください";
+  }
+});
+function importJson(){
+  var msg = document.getElementById("ioMsg");
+  try{
+    var next = normalize(JSON.parse(document.getElementById("ioText").value));
+    if(!next) throw new Error("形式が違います");
+    S = next;
+    setMove(null);
+    render();
+    if(S.view === "arr") renderArr();
+    msg.textContent = "読み込みました Imported";
+  }catch(err){
+    msg.textContent = "読み込めません: " + err.message;
+  }
+}
+document.getElementById("ioLoad").addEventListener("click", importJson);
+
+/* ==================================================================
+   Arrhenius plot:  ln k = ln A − (Ea/R)·(1/T)
+   Data is kept as named series; any subset can be overlaid.
+   ================================================================== */
+var R_GAS = 8.314462618;            /* J mol⁻¹ K⁻¹ (CODATA) */
+var arrExp = document.getElementById("arrExp");
+var arrUnit = document.getElementById("arrUnit");
+var arrName = document.getElementById("arrName");
+var arrSw = document.getElementById("arrSw");
+
+(function initArrExp(){
+  var o = [];
+  for(var n = 3; n >= -12; n--){
+    o.push('<option value="'+n+'">' + (n === 0 ? "×1" : "×10" + sup(n)) + '</option>');
+  }
+  arrExp.innerHTML = o.join("");
+  arrSw.innerHTML = SLOTS.map(function(v, i){
+    return '<button type="button" class="sw-btn" data-aslot="'+i+'" style="background:var('+v+')" ' +
+      'title="'+SLOT_NAME[i]+'" aria-label="'+SLOT_NAME[i]+'" aria-pressed="false"></button>';
+  }).join("");
+})();
+
+function fmtSci(x, d){
+  if(!isFinite(x)) return "–";
+  if(x === 0) return "0";
+  var e = Math.floor(Math.log10(Math.abs(x)));
+  var m = x / Math.pow(10, e);
+  if(Math.abs(m) >= 10){ m /= 10; e += 1; }        /* rounding guard */
+  return m.toFixed(d === undefined ? 4 : d) + "×10" + sup(e);
+}
+var setMoveId = null, setDragId = null;   /* series being reordered */
+function setIndex(id){
+  var a = S.arr.sets;
+  for(var i = 0; i < a.length; i++){ if(a[i].id === id) return i; }
+  return -1;
+}
+/* move `fromId` into `toId`'s slot; the rest shift to make room */
+function moveSet(fromId, toId){
+  setMoveId = null;
+  if(!fromId || !toId || fromId === toId){ renderArr(); return; }
+  var from = setIndex(fromId), to = setIndex(toId);
+  if(from < 0 || to < 0){ renderArr(); return; }
+  var item = S.arr.sets.splice(from, 1)[0];
+  S.arr.sets.splice(to, 0, item);
+  renderArr();
+}
+function arrSets(){ return S.arr.sets; }
+function activeSet(){
+  var a = S.arr;
+  var s = a.sets.filter(function(x){ return x.id === a.active; })[0];
+  if(!s){ s = a.sets[0]; a.active = s.id; }
+  return s;
+}
+function shownSets(){ return S.arr.sets.filter(function(s){ return s.show !== false; }); }
+
+/* rows of one series that carry a usable (T, k) pair */
+function arrPoints(set){
+  var f = Math.pow(10, set.exp), out = [];
+  set.rows.forEach(function(r){
+    var tc = parseFloat(r.tc), km = parseFloat(r.k);
+    if(!isFinite(tc) || !isFinite(km) || km <= 0) return;
+    var T = tc + 273.15;
+    if(T <= 0) return;
+    out.push({tc:tc, T:T, k:km * f, x:1 / T, y:Math.log(km * f)});
+  });
+  return out;
+}
+function regress(pts){
+  var n = pts.length;
+  if(n < 2) return null;
+  var mx = 0, my = 0, i;
+  for(i = 0; i < n; i++){ mx += pts[i].x; my += pts[i].y; }
+  mx /= n; my /= n;
+  var sxy = 0, sxx = 0, syy = 0, dx, dy;
+  for(i = 0; i < n; i++){
+    dx = pts[i].x - mx; dy = pts[i].y - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  if(sxx === 0) return null;
+  var slope = sxy / sxx;
+  var intercept = my - slope * mx;
+  var r2 = (syy === 0) ? 1 : (sxy * sxy) / (sxx * syy);
+  return {n:n, mx:mx, my:my, sxy:sxy, sxx:sxx, syy:syy,
+          slope:slope, intercept:intercept, r2:r2,
+          Ea:-slope * R_GAS, A:Math.exp(intercept)};
+}
+
+/* ---------- Arrhenius chart ---------- */
+function niceAxis(lo, hi){
+  if(!(hi > lo)){ hi = lo + Math.abs(lo || 1) * 0.05 + 0.5; lo = lo - Math.abs(lo || 1) * 0.05 - 0.5; }
+  var step = niceStep(hi - lo, 4);
+  var a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step;
+  var ticks = [], v = a, guard = 0;
+  while(v <= b + step * 1e-9 && guard++ < 60){ ticks.push(v); v += step; }
+  return {lo:a, hi:b, step:step, ticks:ticks};
+}
+function arrChart(series, mode){
+  var W = 300, H = 262, m = {l:50, r:12, t:12, b:34};
+  var pw = W - m.l - m.r, ph = H - m.t - m.b;
+  var all = [];
+  series.forEach(function(s){ all = all.concat(s.pts); });
+  if(all.length < 1){
+    return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="アレニウスプロット">' +
+      '<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" font-family="var(--chart)" ' +
+      'font-size="11" fill="var(--ink-3)">左の表に2点以上入力してください</text></svg>';
+  }
+  var xs = all.map(function(p){ return p.x * 1000; });   /* 10⁻³ K⁻¹ */
+  var ys = all.map(function(p){ return p.y; });
+  var full = (mode === "full");
+  if(full){
+    /* widen the axes until 1/T = 0 (ln A) and ln k = 0 (k = 1) are both on screen */
+    xs = xs.concat([0]);
+    ys = ys.concat([0]);
+    series.forEach(function(s){
+      if(!s.fit) return;
+      ys.push(s.fit.intercept);
+      var xi = -s.fit.intercept / s.fit.slope * 1000;   /* ln k = 0 */
+      if(isFinite(xi)) xs.push(xi);
+    });
+  }
+  var xa = niceAxis(Math.min.apply(null, xs), Math.max.apply(null, xs));
+  var ya = niceAxis(Math.min.apply(null, ys), Math.max.apply(null, ys));
+  if(full){ xa.lo = Math.min(xa.lo, 0); }
+  function X(v){ return m.l + (v - xa.lo) / (xa.hi - xa.lo) * pw; }
+  function Y(v){ return m.t + (ya.hi - v) / (ya.hi - ya.lo) * ph; }
+  var g = [];
+  var clipId = "arrclip" + Math.random().toString(36).slice(2, 7);
+  g.push('<defs><clipPath id="'+clipId+'"><rect x="'+m.l+'" y="'+m.t+'" width="'+pw+'" height="'+ph+'"/></clipPath></defs>');
+  ya.ticks.forEach(function(v){
+    g.push('<line x1="'+m.l+'" y1="'+Y(v).toFixed(2)+'" x2="'+(m.l+pw)+'" y2="'+Y(v).toFixed(2)+'" stroke="var(--rule)" stroke-width="1"/>');
+    g.push('<text x="'+(m.l-6)+'" y="'+(Y(v)+3.2).toFixed(2)+'" text-anchor="end" font-family="var(--chart)" font-size="9" fill="var(--ink-3)">'+prec3(v)+'</text>');
+  });
+  xa.ticks.forEach(function(v){
+    g.push('<line x1="'+X(v).toFixed(2)+'" y1="'+(m.t+ph)+'" x2="'+X(v).toFixed(2)+'" y2="'+(m.t+ph+4)+'" stroke="var(--baseline)" stroke-width="1"/>');
+    g.push('<text x="'+X(v).toFixed(2)+'" y="'+(m.t+ph+14)+'" text-anchor="middle" font-family="var(--chart)" font-size="9" fill="var(--ink-3)">'+prec3(v)+'</text>');
+  });
+  g.push('<text x="'+(m.l+pw/2)+'" y="'+(m.t+ph+29)+'" text-anchor="middle" font-family="var(--chart)" font-size="9.5" fill="var(--ink)">1/<tspan font-style="italic">T</tspan> (10<tspan font-size="0.72em" dy="-3">−3</tspan><tspan dy="3"> K</tspan><tspan font-size="0.72em" dy="-3">−1</tspan><tspan dy="3">)</tspan></text>');
+  g.push('<text transform="translate(12,'+(m.t+ph/2)+') rotate(-90)" text-anchor="middle" font-family="var(--chart)" font-size="9.5" fill="var(--ink)">ln <tspan font-style="italic">k</tspan></text>');
+
+  /* in the wide view, ln k = 0 (k = 1) is a meaningful reference line */
+  if(full && ya.lo < 0 && ya.hi > 0){
+    g.push('<line x1="'+m.l+'" y1="'+Y(0).toFixed(2)+'" x2="'+(m.l+pw)+'" y2="'+Y(0).toFixed(2)+'" stroke="var(--baseline)" stroke-width="1" stroke-dasharray="3 3"/>');
+    g.push('<text x="'+(m.l+pw-3)+'" y="'+(Y(0)-3).toFixed(2)+'" text-anchor="end" font-family="var(--chart)" font-size="8" fill="var(--ink-3)">ln k = 0</text>');
+  }
+  series.forEach(function(s){
+    var col = "var(" + slotVar(s.set.slot) + ")";
+    if(s.fit){
+      var y1 = s.fit.intercept + s.fit.slope * (xa.lo / 1000);
+      var y2 = s.fit.intercept + s.fit.slope * (xa.hi / 1000);
+      g.push('<line x1="'+X(xa.lo).toFixed(2)+'" y1="'+Y(y1).toFixed(2)+'" x2="'+X(xa.hi).toFixed(2)+'" y2="'+Y(y2).toFixed(2)+'" stroke="'+col+'" stroke-width="1.6" clip-path="url(#'+clipId+')"/>');
+      if(full){
+        /* open markers on the two intercepts */
+        var xi = -s.fit.intercept / s.fit.slope * 1000;
+        g.push('<circle cx="'+X(0).toFixed(2)+'" cy="'+Y(s.fit.intercept).toFixed(2)+'" r="3.6" fill="var(--surface)" stroke="'+col+'" stroke-width="1.8"/>');
+        if(isFinite(xi)){
+          g.push('<circle cx="'+X(xi).toFixed(2)+'" cy="'+Y(0).toFixed(2)+'" r="3.6" fill="var(--surface)" stroke="'+col+'" stroke-width="1.8" clip-path="url(#'+clipId+')"/>');
+        }
+      }
+    }
+    s.pts.forEach(function(pt){
+      g.push('<circle cx="'+X(pt.x*1000).toFixed(2)+'" cy="'+Y(pt.y).toFixed(2)+'" r="4" fill="'+col+'" stroke="var(--surface)" stroke-width="2"/>');
+    });
+  });
+  g.push('<rect x="'+m.l+'" y="'+m.t+'" width="'+pw+'" height="'+ph+'" fill="none" stroke="var(--baseline)" stroke-width="1"/>');
+  return '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="アレニウスプロット">'+g.join("")+'</svg>';
+}
+
+/* ---------- render ---------- */
+function renderArr(){
+  var a = S.arr, act = activeSet();
+
+  /* series chips */
+  document.getElementById("arrSets").innerHTML = a.sets.map(function(s){
+    return '<div class="setchip'+(s.id === a.active ? ' active' : '')+(s.id === setMoveId ? ' picked' : '')+'" data-sid="'+s.id+'">' +
+      '<button type="button" class="cgrip" data-agrip="'+s.id+'" draggable="true" ' +
+      'title="ドラッグ／クリックで系を並び替え" aria-label="この系を並び替える">' + GRIP + '</button>' +
+      '<label class="ck" title="プロットに重ねる"><input type="checkbox" data-ashow="'+s.id+'"'+(s.show !== false ? ' checked' : '')+'>' +
+      lineSample(s.slot, "solid") + '</label>' +
+      '<button type="button" class="nm" data-apick="'+s.id+'" title="この系を編集">'+esc(s.name)+'</button>' +
+      (a.sets.length > 1 ? '<button type="button" class="x" data-adel="'+s.id+'" aria-label="この系を削除">×</button>' : '') +
+      '</div>';
+  }).join("");
+
+  document.getElementById("setMoveHint").hidden = (setMoveId === null);
+
+  /* editor bar */
+  arrName.value = act.name;
+  arrExp.value = String(act.exp);
+  arrUnit.value = act.unit;
+  Array.prototype.forEach.call(arrSw.querySelectorAll(".sw-btn"), function(b){
+    b.setAttribute("aria-pressed", String(Number(b.dataset.aslot) === act.slot));
+  });
+  document.getElementById("arrUnitA").textContent = UNIT_LABEL[act.unit];
+
+  /* three tables — always the active series */
+  var f = Math.pow(10, act.exp);
+  var inHtml = "", midHtml = "", rightHtml = "";
+  act.rows.forEach(function(r, i){
+    inHtml += '<tr>' +
+      '<td><input class="arr-tc" data-i="'+i+'" type="number" step="any" value="'+esc(r.tc)+'" aria-label="温度 '+(i+1)+'"></td>' +
+      '<td><input class="arr-k" data-i="'+i+'" type="number" step="any" value="'+esc(r.k)+'" aria-label="kobs '+(i+1)+'"></td>' +
+      '</tr>';
+    var tc = parseFloat(r.tc), km = parseFloat(r.k);
+    var okT = isFinite(tc), okK = isFinite(km) && km > 0;
+    var T = okT ? tc + 273.15 : null;
+    midHtml += '<tr><td'+(okT?'':' class="blank"')+'>'+(okT ? T.toFixed(2) : "—")+'</td>' +
+      '<td'+(okK?'':' class="blank"')+'>'+(okK ? fmtSci(km * f, 3) : "—")+'</td></tr>';
+    rightHtml += '<tr><td'+(okT?'':' class="blank"')+'>'+(okT ? fmtSci(1 / T, 4) : "—")+'</td>' +
+      '<td'+(okK?'':' class="blank"')+'>'+(okK ? Math.log(km * f).toFixed(4) : "—")+'</td></tr>';
+  });
+  document.getElementById("arrIn").innerHTML = inHtml;
+  document.getElementById("arrMid").innerHTML = midHtml;
+  document.getElementById("arrRight").innerHTML = rightHtml;
+
+  /* every series that is switched on */
+  var series = shownSets().map(function(s){
+    var pts = arrPoints(s);
+    return {set:s, pts:pts, fit:regress(pts)};
+  });
+  var mode = (S.arr.mode === "full") ? "full" : "data";
+  document.getElementById("pmData").setAttribute("aria-pressed", String(mode === "data"));
+  document.getElementById("pmFull").setAttribute("aria-pressed", String(mode === "full"));
+  document.getElementById("arrModeNote").innerHTML = mode === "full"
+    ? '軸を 1/<i>T</i> = 0 と ln <i>k</i> = 0 まで広げ、<i>y</i> 切片 ln <i>A</i> と <i>x</i> 切片（<i>k</i> = 1 となる温度）を表示。' +
+      '<span class="en">Axes extended to 1/<i>T</i> = 0 and ln <i>k</i> = 0, so both intercepts are visible.</span>'
+    : '測定点のまわりだけを拡大して表示。傾き（<i>E</i><sub>a</sub>）の比較に適する。' +
+      '<span class="en">Axes fitted to the measured points — best for comparing slopes.</span>';
+  document.getElementById("arrPlot").innerHTML = arrChart(series, mode);
+
+  /* legend (only meaningful with more than one series) */
+  var leg = document.getElementById("arrLegend");
+  leg.innerHTML = series.length > 1 ? series.map(function(s){
+    return '<span class="li">' + lineSample(s.set.slot, "solid") + esc(s.set.name) +
+      (s.fit ? '<span class="r2"><i>R</i>² '+s.fit.r2.toFixed(4)+'</span>' : '') + '</span>';
+  }).join("") : "";
+
+  /* results: one series → full table; several → comparison table */
+  var wrap = document.getElementById("arrResWrap");
+  var withFit = series.filter(function(s){ return s.fit; });
+  if(withFit.length > 1){
+    wrap.innerHTML = '<table class="arr t-cmp"><thead><tr>' +
+      '<th>系 Series</th><th><i>E</i><sub>a</sub> (kJ/mol)</th><th>ln <i>A</i></th><th><i>A</i></th><th><i>R</i><sup>2</sup></th>' +
+      '</tr></thead><tbody>' + withFit.map(function(s){
+        return '<tr><td><span class="swcell">'+lineSample(s.set.slot,"solid")+esc(s.set.name)+'</span></td>' +
+          '<td>'+(s.fit.Ea / 1000).toFixed(2)+'</td>' +
+          '<td>'+s.fit.intercept.toFixed(4)+'</td>' +
+          '<td>'+fmtSci(s.fit.A, 3)+' '+UNIT_LABEL[s.set.unit]+'</td>' +
+          '<td>'+s.fit.r2.toFixed(4)+'</td></tr>';
+      }).join("") + '</tbody></table>' +
+      '<p class="cmp-note"><i>E</i><sub>a</sub> は単位系に依存しません。<i>A</i> は各系で選んだ <i>k</i><sub>obs</sub> の単位で表示しています。</p>';
+  }else{
+    var one = withFit[0];
+    if(!one){
+      wrap.innerHTML = '<table class="arr t-res"><thead><tr><th colspan="2">回帰結果 Results</th></tr></thead>' +
+        '<tbody><tr><td colspan="2" class="blank" style="text-align:left">2点以上の入力が必要です</td></tr></tbody></table>';
+    }else{
+      var u = UNIT_LABEL[one.set.unit], fit = one.fit;
+      wrap.innerHTML = '<table class="arr t-res"><thead><tr><th colspan="2">回帰結果 Results — '+esc(one.set.name)+'</th></tr></thead><tbody>' +
+        '<tr><td>傾き −<i>E</i><sub>a</sub>/<i>R</i></td><td>'+fmtSci(fit.slope, 4)+' K</td></tr>' +
+        '<tr><td>切片 ln <i>A</i></td><td>'+fit.intercept.toFixed(4)+'</td></tr>' +
+        '<tr><td><i>R</i><sup>2</sup></td><td>'+fit.r2.toFixed(4)+'</td></tr>' +
+        '<tr><td>頻度因子 <i>A</i></td><td>'+fmtSci(fit.A, 3)+' '+u+'</td></tr>' +
+        '<tr><td>活性化エネルギー <i>E</i><sub>a</sub></td><td>'+(fit.Ea / 1000).toFixed(2)+' kJ/mol</td></tr>' +
+        '</tbody></table>';
+    }
+  }
+
+  /* worked steps — always the active series */
+  var steps = document.getElementById("arrSteps");
+  document.getElementById("arrStepsWho").textContent = act.name;
+  var pts = arrPoints(act), fit2 = regress(pts);
+  if(!fit2){
+    steps.textContent = "温度と k_obs を2行以上入力すると、ここに計算過程が表示されます。";
+    save();
+    return;
+  }
+  var uu = UNIT_LABEL[act.unit];
+  var L = [];
+  L.push("系: " + act.name);
+  L.push("x = 1/T (K⁻¹),  y = ln k    n = " + fit2.n);
+  L.push("x̄ = " + fmtSci(fit2.mx, 6) + "   ȳ = " + fit2.my.toFixed(6));
+  L.push("Sxx = Σ(x−x̄)²      = " + fmtSci(fit2.sxx, 6));
+  L.push("Sxy = Σ(x−x̄)(y−ȳ) = " + fmtSci(fit2.sxy, 6));
+  L.push("Syy = Σ(y−ȳ)²      = " + fit2.syy.toFixed(6));
+  L.push("");
+  L.push("傾き a = Sxy / Sxx = " + fmtSci(fit2.slope, 6) + " K");
+  L.push("切片 b = ȳ − a·x̄  = " + fit2.my.toFixed(6) + " − (" + fmtSci(fit2.slope, 6) + ")(" + fmtSci(fit2.mx, 6) + ")");
+  L.push("             = " + fit2.intercept.toFixed(6));
+  L.push("R² = Sxy² / (Sxx·Syy) = " + fit2.r2.toFixed(6) + "  →  " + fit2.r2.toFixed(4));
+  L.push("");
+  L.push("a = −Ea/R  ⇒  Ea = −a·R");
+  L.push("   Ea = " + fmtSci(-fit2.slope, 6) + " K × " + R_GAS + " J mol⁻¹K⁻¹");
+  L.push("      = " + fmtSci(fit2.Ea, 6) + " J/mol = " + (fit2.Ea / 1000).toFixed(2) + " kJ/mol");
+  L.push("");
+  L.push("b = ln A   ⇒  A = e^b = e^" + fit2.intercept.toFixed(6));
+  L.push("      = " + fmtSci(fit2.A, 6) + " " + uu);
+  L.push("");
+  L.push("検算: 各点の ln k(計算) = b + a/T");
+  pts.forEach(function(pt){
+    var calc = fit2.intercept + fit2.slope * pt.x;
+    L.push("  " + String(pt.tc).padStart(6) + " °C : 実測 " + pt.y.toFixed(4) +
+           " / 回帰 " + calc.toFixed(4) + "  (差 " + (pt.y - calc).toFixed(4) + ")");
+  });
+  steps.textContent = L.join("\n");
+  save();
+}
+
+/* ---------- input handling ---------- */
+document.getElementById("viewArr").addEventListener("input", function(e){
+  var act = activeSet();
+  var i = e.target.dataset ? Number(e.target.dataset.i) : NaN;
+  if(e.target.classList.contains("arr-tc")){ act.rows[i].tc = e.target.value; renderArr(); }
+  else if(e.target.classList.contains("arr-k")){ act.rows[i].k = e.target.value; renderArr(); }
+  else if(e.target === arrName){ act.name = e.target.value; renderArrLight(); }
+});
+/* renaming should not rebuild the input the user is typing in */
+function renderArrLight(){
+  var a = S.arr;
+  Array.prototype.forEach.call(document.querySelectorAll(".setchip .nm"), function(b){
+    var s = a.sets.filter(function(x){ return x.id === b.dataset.apick; })[0];
+    if(s) b.textContent = s.name;
+  });
+  document.getElementById("arrStepsWho").textContent = activeSet().name;
+  save();
+}
+arrName.addEventListener("change", function(){ renderArr(); });
+arrExp.addEventListener("change", function(){ activeSet().exp = Number(arrExp.value); renderArr(); });
+arrUnit.addEventListener("change", function(){ activeSet().unit = arrUnit.value; renderArr(); });
+arrSw.addEventListener("click", function(e){
+  var b = e.target.closest(".sw-btn"); if(!b) return;
+  activeSet().slot = Number(b.dataset.aslot);
+  renderArr();
+});
+document.getElementById("arrAddRow").addEventListener("click", function(){
+  var act = activeSet();
+  if(act.rows.length < 12) act.rows.push({tc:"", k:""});
+  renderArr();
+});
+document.getElementById("arrDelRow").addEventListener("click", function(){
+  var act = activeSet();
+  if(act.rows.length > 2) act.rows.pop();
+  renderArr();
+});
+document.getElementById("pmData").addEventListener("click", function(){ S.arr.mode = "data"; renderArr(); });
+document.getElementById("pmFull").addEventListener("click", function(){ S.arr.mode = "full"; renderArr(); });
+document.getElementById("arrAddSet").addEventListener("click", function(){
+  var a = S.arr;
+  if(a.sets.length >= 12) return;
+  var used = a.sets.map(function(s){ return s.slot; });
+  var next = 0;
+  for(var i = 0; i < SLOTS.length; i++){ if(used.indexOf(i) < 0){ next = i; break; } }
+  var s = {id:uid(), name:"系 " + (a.sets.length + 1), slot:next,
+           exp:activeSet().exp, unit:activeSet().unit, show:true,
+           rows:[{tc:"", k:""}, {tc:"", k:""}, {tc:"", k:""}]};
+  a.sets.push(s);
+  a.active = s.id;
+  renderArr();
+  arrName.focus();
+  arrName.select();
+});
+document.getElementById("arrSets").addEventListener("click", function(e){
+  var grip = e.target.closest("[data-agrip]");
+  if(grip){
+    var id = grip.dataset.agrip;
+    if(setMoveId === null) setMoveId = id;
+    else if(setMoveId === id) setMoveId = null;
+    else { moveSet(setMoveId, id); return; }
+    renderArr();
+    return;
+  }
+  var pick = e.target.closest("[data-apick]");
+  if(pick){ setMoveId = null; S.arr.active = pick.dataset.apick; renderArr(); return; }
+  var del = e.target.closest("[data-adel]");
+  if(del){
+    var a = S.arr;
+    if(a.sets.length <= 1) return;
+    setMoveId = null;
+    a.sets = a.sets.filter(function(s){ return s.id !== del.dataset.adel; });
+    if(!a.sets.some(function(s){ return s.id === a.active; })) a.active = a.sets[0].id;
+    renderArr();
+  }
+});
+document.getElementById("setMoveCancel").addEventListener("click", function(){
+  setMoveId = null; renderArr();
+});
+/* drag to reorder */
+var arrSetsEl = document.getElementById("arrSets");
+arrSetsEl.addEventListener("dragstart", function(e){
+  var g = e.target.closest(".cgrip"); if(!g) return;
+  setDragId = g.dataset.agrip;
+  setMoveId = null;
+  var chip = g.closest(".setchip");
+  if(e.dataTransfer){
+    e.dataTransfer.effectAllowed = "move";
+    try{ e.dataTransfer.setData("text/plain", setDragId); }catch(err){}
+    if(e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(chip, 20, 14);
+  }
+  chip.classList.add("dragging");
+});
+arrSetsEl.addEventListener("dragover", function(e){
+  if(!setDragId) return;
+  var chip = e.target.closest(".setchip"); if(!chip) return;
+  e.preventDefault();
+  if(e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  if(chip.dataset.sid !== setDragId) chip.classList.add("dropzone");
+});
+arrSetsEl.addEventListener("dragleave", function(e){
+  var chip = e.target.closest(".setchip");
+  if(chip && !chip.contains(e.relatedTarget)) chip.classList.remove("dropzone");
+});
+arrSetsEl.addEventListener("drop", function(e){
+  var chip = e.target.closest(".setchip");
+  if(!chip || !setDragId) return;
+  e.preventDefault();
+  var src = setDragId; setDragId = null;
+  moveSet(src, chip.dataset.sid);
+});
+arrSetsEl.addEventListener("dragend", function(){
+  setDragId = null;
+  Array.prototype.forEach.call(arrSetsEl.querySelectorAll(".setchip"), function(c){
+    c.classList.remove("dropzone"); c.classList.remove("dragging");
+  });
+});
+document.getElementById("arrSets").addEventListener("change", function(e){
+  var box = e.target.closest("[data-ashow]");
+  if(!box) return;
+  var s = S.arr.sets.filter(function(x){ return x.id === box.dataset.ashow; })[0];
+  if(s){ s.show = box.checked; renderArr(); }
+});
+
+/* ---------- view switching ---------- */
+function showView(v){
+  S.view = (v === "arr") ? "arr" : "decay";
+  var arr = S.view === "arr";
+  document.getElementById("viewDecay").hidden = arr;
+  document.getElementById("viewArr").hidden = !arr;
+  document.getElementById("tabDecay").setAttribute("aria-selected", String(!arr));
+  document.getElementById("tabArr").setAttribute("aria-selected", String(arr));
+  if(arr) renderArr();
+  save();
+}
+document.getElementById("tabDecay").addEventListener("click", function(){ showView("decay"); });
+document.getElementById("tabArr").addEventListener("click", function(){ showView("arr"); });
+
+render();
+renderArr();
+showView(S.view);
+})();
+</script>
+</body>
+</html>
