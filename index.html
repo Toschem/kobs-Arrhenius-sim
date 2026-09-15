@@ -36,6 +36,9 @@
   --qc-bg:#e4e4df;          /* quick-estimator panel: grey against the light ground */
   --qc-border:#cfcfc8;
   --qc-calc:#c4605a;        /* a value derived from the fit, not entered */
+  /* diverging ramp for the Q10 tab: cooler than the reference = blue, hotter = red */
+  --cold-1:#9ec5f4; --cold-2:#6da7ec; --cold-3:#3987e5; --cold-4:#256abf; --cold-5:#184f95;
+  --hot-1:#f3a3a2;  --hot-2:#ec7b7a;  --hot-3:#e34948;  --hot-4:#c22f2e;  --hot-5:#9a2423;
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
   --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
   --s9:#1b1d20;   /* ink / 黒 */
@@ -68,6 +71,8 @@
     --qc-bg:#2c2c2a;        /* lighter than the dark ground, so the panel reads as a block */
     --qc-border:#3d3d39;
     --qc-calc:#e8938c;
+    --cold-1:#b7d3f6; --cold-2:#86b6ef; --cold-3:#5598e7; --cold-4:#3987e5; --cold-5:#2a78d6;
+    --hot-1:#f6b9b8;  --hot-2:#ef9695;  --hot-3:#e66767;  --hot-4:#d9504f;  --hot-5:#c43e3d;
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
     --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
     --s9:#f2f2ef;   /* ink / 黒（ダークでは白として描画） */
@@ -94,6 +99,8 @@
   --qc-bg:#2c2c2a;
   --qc-border:#3d3d39;
   --qc-calc:#e8938c;
+  --cold-1:#b7d3f6; --cold-2:#86b6ef; --cold-3:#5598e7; --cold-4:#3987e5; --cold-5:#2a78d6;
+  --hot-1:#f6b9b8;  --hot-2:#ef9695;  --hot-3:#e66767;  --hot-4:#d9504f;  --hot-5:#c43e3d;
 }
 
 *{box-sizing:border-box}
@@ -319,6 +326,27 @@ table.t-res td:last-child{font-weight:500}
   color:var(--ink-2);overflow-x:auto;white-space:pre;
 }
 .arr-steps pre b{color:var(--ink);font-weight:600}
+
+/* ---------- Q10 rule view ---------- */
+.q10-caveat{
+  margin:12px 0 0;max-width:80ch;font-size:11.5px;line-height:1.7;color:var(--ink-3);
+  border-left:3px solid var(--baseline);padding-left:10px;
+}
+.q10-top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-start;margin-top:16px}
+.q10-main{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin-top:16px}
+.q10-top > *,.q10-main > *{min-width:0;max-width:100%}
+.q10-opts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.q10-opts .field{gap:6px}
+.q10-opts select{width:auto;height:30px;font-size:12.5px}
+.q10-opts .seg button{font-size:12px;padding:5px 10px}
+.q10-tblwrap{max-height:430px;overflow:auto}
+.q10-tblwrap thead th{position:sticky;top:0;z-index:1}
+.q10-plot{
+  width:min(380px,100%);background:var(--surface);
+  border:1px solid var(--rule);border-radius:10px;padding:8px;
+}
+.q10-base td{background:var(--surface-2);font-weight:600}
+.q10-sw{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:-1px;margin-right:6px}
 
 /* ---------- toolbar ---------- */
 .toolbar{
@@ -603,6 +631,14 @@ footer.foot code{font-family:var(--mono);color:var(--ink-2)}
           <p class="en">Builds an Arrhenius plot from the entered (temperature, <i>k</i><sub>obs</sub>) pairs and finds the pre-exponential factor <i>A</i> and the Arrhenius activation energy <i>E</i><sub>a</sub>.</p>
         </div>
       </div>
+      <div class="simitem">
+        <span class="n">③</span>
+        <div>
+          <b>10&nbsp;°C 2倍則シミュレータ</b><span class="ename">Q₁₀ rule simulator</span>
+          <p>基準の (温度, <i>k</i><sub>obs</sub>) から、温度が 10&nbsp;°C 上がるごとに速度が2倍になるという経験則で前後の温度の <i>k</i><sub>obs</sub> と消失曲線を求める。</p>
+          <p class="en">Applies the rule that the rate doubles per 10&nbsp;°C to a reference (temperature, <i>k</i><sub>obs</sub>), giving <i>k</i><sub>obs</sub> and decay curves at neighbouring temperatures.</p>
+        </div>
+      </div>
     </div>
    </div>
 
@@ -619,6 +655,7 @@ footer.foot code{font-family:var(--mono);color:var(--ink-2)}
     <div class="tabrow" role="tablist">
       <button type="button" id="tabDecay" role="tab" aria-selected="true">消失曲線 Decay curves</button>
       <button type="button" id="tabArr" role="tab" aria-selected="false">アレニウスプロット Arrhenius plot</button>
+      <button type="button" id="tabQ10" role="tab" aria-selected="false">10&nbsp;°C 2倍則 Q₁₀ rule</button>
     </div>
     <div class="field themefield">
       <span class="lab">配色 Theme</span>
@@ -806,6 +843,75 @@ footer.foot code{font-family:var(--mono);color:var(--ink-2)}
       </div>
     </div>
   </div><!-- /viewArr -->
+
+  <div id="viewQ10" hidden>
+    <div class="tabintro">
+      <p>基準となる温度と <i>k</i><sub>obs</sub> を入力すると、「温度が 10&nbsp;°C 上がるごとに速度が2倍になる」という経験則にしたがって、前後の温度の <i>k</i><sub>obs</sub> が中央の表に表示される。<br>
+      中央の表の各温度の消失曲線が、右の図に重ねて描かれる。</p>
+      <p class="en">Enter a reference temperature and <i>k</i><sub>obs</sub>; the rule that the rate doubles per 10&nbsp;°C gives <i>k</i><sub>obs</sub> at the neighbouring temperatures, and each of them is drawn as a decay curve.</p>
+      <div class="eqbox">
+        <div class="eqh">基本計算式<span class="en">Basic equation</span></div>
+        <p class="eq"><span><i>k</i><sub>obs</sub>(<i>T</i> + Δ<i>T</i>) = <i>k</i><sub>obs</sub>(<i>T</i>) × 2<sup>Δ<i>T</i>/10</sup></span></p>
+      </div>
+      <p class="q10-caveat">この経験則は <i>Q</i><sub>10</sub> = 2 に相当し、25&nbsp;°C 付近では <i>E</i><sub>a</sub> ≈ 53&nbsp;kJ/mol の反応にあたる。目安として使うもので、実際の <i>E</i><sub>a</sub> がこれと離れている系では誤差が大きくなる。正確な外挿には②のアレニウスプロットを使うこと。</p>
+    </div>
+
+    <div class="q10-top">
+      <table class="arr t-input">
+        <thead><tr>
+          <th>基準温度 <i>T</i> (°C)</th>
+          <th><i>k</i><sub>obs</sub>
+            <span class="unitpick">
+              <select id="q10Exp" aria-label="補助単位"></select>
+              <select id="q10Unit" aria-label="単位">
+                <option value="s">s⁻¹</option>
+                <option value="min">min⁻¹</option>
+                <option value="h">h⁻¹</option>
+              </select>
+            </span>
+          </th>
+        </tr></thead>
+        <tbody><tr>
+          <td><input id="q10T" type="number" step="any" aria-label="基準温度"></td>
+          <td><input id="q10K" type="number" step="any" aria-label="kobs"></td>
+        </tr></tbody>
+      </table>
+
+      <div class="q10-opts">
+        <div class="field">
+          <span class="lab">刻み Step</span>
+          <div class="seg" role="group" aria-label="温度の刻み">
+            <button type="button" id="q10s10" aria-pressed="true">10 °C</button>
+            <button type="button" id="q10s20" aria-pressed="false">20 °C</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lab">段数 <i>n</i></span>
+          <select id="q10N" aria-label="段数"></select>
+        </div>
+        <div class="field">
+          <span class="lab">横軸 Axis</span>
+          <select id="q10Basis" aria-label="横軸の基準">
+            <option value="mid">基準温度</option>
+            <option value="slow">最も遅い曲線</option>
+            <option value="fast">最も速い曲線</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="q10-main">
+      <div class="q10-tblwrap">
+        <table class="arr">
+          <thead><tr><th>温度 (°C)</th><th><i>k</i><sub>obs</sub> (<span id="q10UnitA">min⁻¹</span>)</th><th><i>t</i><sub>50%</sub></th></tr></thead>
+          <tbody id="q10Tbl"></tbody>
+        </table>
+      </div>
+
+      <div class="plot q10-plot" id="q10Plot"></div>
+    </div>
+  </div><!-- /viewQ10 -->
 
   <footer class="foot">
     枠は左上のハンドルをドラッグすると入れ替えられます。ドラッグできない環境では、ハンドルをクリック→移動先のハンドルをクリックでも入れ替わります。列数を変えると枠は自動で折り返します。<br>
@@ -1006,6 +1112,8 @@ var DEFAULT = {
     {id:"L6", name:"BC生成 50°C S核型", mant:30.5, exp:-3, unit:"min", dash:"solid"}
   ],
   view:"decay",
+  /* 10 °C rule tab — reference point matches G-OMe at 95 °C */
+  q10:{tc:"95", k:"8.98", exp:-3, unit:"min", step:10, n:3, basis:"mid"},
   /* Arrhenius tab — the seeded numbers are illustrative examples, not literature */
   arr:{
     active:"asH",
@@ -1058,7 +1166,16 @@ function normalize(st){
   /* light is the default; existing saves are moved to it once, then respected */
   if(!st.themeInit){ st.theme = "light"; st.themeInit = true; }
   if(["auto","light","dark"].indexOf(st.theme) < 0) st.theme = "light";
-  if(st.view !== "arr") st.view = "decay";
+  if(["decay","arr","q10"].indexOf(st.view) < 0) st.view = "decay";
+  var d = DEFAULT.q10, q = st.q10;
+  if(!q || typeof q !== "object") q = st.q10 = JSON.parse(JSON.stringify(d));
+  if(typeof q.tc !== "string") q.tc = String(q.tc === undefined ? d.tc : q.tc);
+  if(typeof q.k !== "string") q.k = String(q.k === undefined ? d.k : q.k);
+  if(typeof q.exp !== "number") q.exp = d.exp;
+  if(["s","min","h"].indexOf(q.unit) < 0) q.unit = d.unit;
+  q.step = (q.step === 20) ? 20 : 10;
+  q.n = Math.min(10, Math.max(0, Number(q.n) || 0));
+  if(["mid","slow","fast"].indexOf(q.basis) < 0) q.basis = "mid";
   /* Arrhenius: accept the older single-dataset shape */
   if(st.arr && Array.isArray(st.arr.rows) && !st.arr.sets){
     st.arr = {active:"as1", sets:[{id:"as1", name:"系 1", slot:0,
@@ -1217,7 +1334,7 @@ function buildChart(p, extra){
       d += (started ? "L" : "M") + x.toFixed(2) + " " + y.toFixed(2) + " ";
       started = true;
     }
-    var col = "var(" + slotVar(o.c.slot) + ")";
+    var col = o.c.color || ("var(" + slotVar(o.c.slot) + ")");
     g.push('<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' +
       dashAttr(dashOf(o.c)) + ' clip-path="url(#'+clipId+')"/>');
     /* start marker with surface ring (at the curve's own t = 0 value) */
@@ -2413,23 +2530,117 @@ document.getElementById("arrSets").addEventListener("change", function(e){
   if(s){ s.show = box.checked; renderArr(); }
 });
 
+/* ==================================================================
+   10 °C rule (Q10 = 2):  k(T + ΔT) = k(T) · 2^(ΔT/10)
+   ================================================================== */
+var q10Exp = document.getElementById("q10Exp");
+var q10Unit = document.getElementById("q10Unit");
+var q10T = document.getElementById("q10T");
+var q10K = document.getElementById("q10K");
+var q10N = document.getElementById("q10N");
+var q10Basis = document.getElementById("q10Basis");
+
+(function initQ10(){
+  var o = [], n;
+  for(n = 3; n >= -12; n--){
+    o.push('<option value="'+n+'">' + (n === 0 ? "×1" : "×10" + sup(n)) + '</option>');
+  }
+  q10Exp.innerHTML = o.join("");
+  var m = [];
+  for(n = 0; n <= 10; n++) m.push('<option value="'+n+'">± '+n+'</option>');
+  q10N.innerHTML = m.join("");
+})();
+
+/* blue below the reference, ink at it, red above; deeper with distance */
+function q10Color(i, n){
+  if(i === 0) return "var(--s9)";
+  var step = Math.min(5, Math.max(1, Math.ceil(Math.abs(i) * 5 / Math.max(1, n))));
+  return "var(--" + (i < 0 ? "cold-" : "hot-") + step + ")";
+}
+function renderQ10(){
+  var q = S.q10;
+  q10T.value = q.tc;
+  q10K.value = q.k;
+  q10Exp.value = String(q.exp);
+  q10Unit.value = q.unit;
+  q10N.value = String(q.n);
+  q10Basis.value = q.basis;
+  document.getElementById("q10s10").setAttribute("aria-pressed", String(q.step === 10));
+  document.getElementById("q10s20").setAttribute("aria-pressed", String(q.step === 20));
+  document.getElementById("q10UnitA").textContent = UNIT_LABEL[q.unit];
+  renderQ10Out();
+}
+function renderQ10Out(){
+  var q = S.q10;
+  var tc = parseFloat(q.tc), km = parseFloat(q.k);
+  var body = document.getElementById("q10Tbl");
+  var host = document.getElementById("q10Plot");
+  if(!isFinite(tc) || !isFinite(km) || km <= 0){
+    body.innerHTML = '<tr><td colspan="3" class="blank" style="text-align:left">温度と <i>k</i><sub>obs</sub> を入力してください</td></tr>';
+    host.innerHTML = "";
+    save();
+    return;
+  }
+  var k0 = km * Math.pow(10, q.exp);
+  var rows = "", curves = [], i;
+  for(i = q.n; i >= -q.n; i--){                       /* hottest first, top of the table */
+    var dT = i * q.step;
+    var k = k0 * Math.pow(2, dT / 10);
+    var col = q10Color(i, q.n);
+    var half = fmtTime(Math.LN2 / (k * UNIT_TO_SEC[q.unit]));
+    rows += '<tr'+(i === 0 ? ' class="q10-base"' : '')+'>' +
+      '<td><span class="q10-sw" style="background:'+col+'"></span>' + (tc + dT).toFixed(0) + '</td>' +
+      '<td>' + fmtSci(k, 3) + '</td>' +
+      '<td>' + half.v + ' ' + half.u + '</td></tr>';
+    var e10 = Math.floor(Math.log10(k));
+    curves.push({id:"q"+i, name:(tc + dT).toFixed(0)+" °C", mant:k / Math.pow(10, e10),
+                 exp:e10, unit:q.unit, slot:0, dash:"solid", color:col});
+  }
+  body.innerHTML = rows;
+
+  /* the reference curve is the median of the fan, so "mid" centres the axis on it */
+  var chart = buildChart({title:"", memo:"", basis:q.basis, curves:curves});
+  host.innerHTML = chart ? chart.svg + '<div class="tip"></div>' : "";
+  if(chart) wireHover(host.parentNode, chart);
+  save();
+}
+["input","change"].forEach(function(ev){
+  q10T.addEventListener(ev, function(){ S.q10.tc = this.value; renderQ10Out(); });
+  q10K.addEventListener(ev, function(){ S.q10.k = this.value; renderQ10Out(); });
+});
+q10Exp.addEventListener("change", function(){ S.q10.exp = Number(this.value); renderQ10Out(); });
+q10Unit.addEventListener("change", function(){
+  S.q10.unit = this.value;
+  document.getElementById("q10UnitA").textContent = UNIT_LABEL[this.value];
+  renderQ10Out();
+});
+q10N.addEventListener("change", function(){ S.q10.n = Number(this.value); renderQ10Out(); });
+q10Basis.addEventListener("change", function(){ S.q10.basis = this.value; renderQ10Out(); });
+document.getElementById("q10s10").addEventListener("click", function(){ S.q10.step = 10; renderQ10(); });
+document.getElementById("q10s20").addEventListener("click", function(){ S.q10.step = 20; renderQ10(); });
+
 /* ---------- view switching ---------- */
 function showView(v){
-  S.view = (v === "arr") ? "arr" : "decay";
-  var arr = S.view === "arr";
-  document.getElementById("viewDecay").hidden = arr;
-  document.getElementById("viewArr").hidden = !arr;
-  document.getElementById("tabDecay").setAttribute("aria-selected", String(!arr));
-  document.getElementById("tabArr").setAttribute("aria-selected", String(arr));
-  if(arr) renderArr();
+  if(["decay","arr","q10"].indexOf(v) < 0) v = "decay";
+  S.view = v;
+  document.getElementById("viewDecay").hidden = (v !== "decay");
+  document.getElementById("viewArr").hidden = (v !== "arr");
+  document.getElementById("viewQ10").hidden = (v !== "q10");
+  document.getElementById("tabDecay").setAttribute("aria-selected", String(v === "decay"));
+  document.getElementById("tabArr").setAttribute("aria-selected", String(v === "arr"));
+  document.getElementById("tabQ10").setAttribute("aria-selected", String(v === "q10"));
+  if(v === "arr") renderArr();
+  if(v === "q10") renderQ10();
   save();
 }
 document.getElementById("tabDecay").addEventListener("click", function(){ showView("decay"); });
 document.getElementById("tabArr").addEventListener("click", function(){ showView("arr"); });
+document.getElementById("tabQ10").addEventListener("click", function(){ showView("q10"); });
 
 render();
 renderQC();
 renderArr();
+renderQ10();
 showView(S.view);
 })();
 </script>
